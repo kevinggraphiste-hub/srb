@@ -1,0 +1,61 @@
+{
+  "id": "house-01",
+  "name": "Intérieur de la maison",
+  "parentId": "village-01",
+  "order": 1,
+  "width": 10,
+  "height": 8,
+  "tilesetId": "placeholder",
+  "defaultSpawnTile": { "x": 5, "y": 3 },
+  "layers": {
+    "ground": [
+      [30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+      [30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+      [30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+      [30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+      [30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+      [30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+      [30, 30, 30, 30, 30, 30, 30, 30, 30, 30],
+      [30, 30, 30, 30, 30, 30, 30, 30, 30, 30]
+    ],
+    "objects": [
+      [31, 31, 31, 31, 31, 31, 31, 31, 31, 31],
+      [31, -1, -1, -1, -1, -1, -1, -1, -1, 31],
+      [31, -1, -1, -1, -1, -1, -1, -1, -1, 31],
+      [31, -1, -1, -1, -1, -1, -1, -1, -1, 31],
+      [31, -1, -1, -1, -1, -1, -1, -1, -1, 31],
+      [31, -1, -1, -1, -1, -1, -1, -1, -1, 31],
+      [31, 31, 31, 31, 31, 33, 31, 31, 31, 31],
+      [31, 31, 31, 31, 31, 31, 31, 31, 31, 31]
+    ]
+  },
+  "collision": [
+    [true, true, true, true, true, true, true, true, true, true],
+    [true, false, false, false, false, false, false, false, false, true],
+    [true, false, false, false, false, false, false, false, false, true],
+    [true, false, false, false, false, false, false, false, false, true],
+    [true, false, false, false, false, false, false, false, false, true],
+    [true, false, false, false, false, false, false, false, false, true],
+    [true, true, true, true, true, false, true, true, true, true],
+    [true, true, true, true, true, true, true, true, true, true]
+  ],
+  "events": [
+    {
+      "id": "door-house-to-village",
+      "name": "Sortie de la maison",
+      "x": 5,
+      "y": 6,
+      "pages": [
+        {
+          "conditions": [],
+          "trigger": "contact",
+          "graphic": { "spriteId": null, "direction": "down", "frame": 0 },
+          "movement": { "type": "fixed" },
+          "commands": [
+            { "type": "transfer", "mapId": "village-01", "x": 10, "y": 11 }
+          ]
+        }
+      ]
+    }
+  ]
+}

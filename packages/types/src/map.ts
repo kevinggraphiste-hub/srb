@@ -106,6 +106,12 @@ export interface GameMap {
   layers: MapLayers;
   collision: CollisionGrid;
   events: MapEvent[];
+  /**
+   * Default spawn tile when the map is entered without an explicit spawn
+   * (e.g. the very first map of the game). If absent, the engine falls
+   * back to the map center.
+   */
+  defaultSpawnTile?: { x: number; y: number };
   /** Optional background music (asset ID). */
   bgm?: string;
 }

@@ -14,12 +14,18 @@ export const TILE_REGISTRY: Record<number, TileDef> = {
   1: { color: 0x8b6f3a, label: 'dirt' },
   2: { color: 0x2e5d8f, label: 'water' },
 
-  // objects
+  // objects — natural
   10: { color: 0x1f4a1f, label: 'tree' },
   11: { color: 0x555555, label: 'rock' },
 
   // detail
   20: { color: 0xf2c94c, label: 'flower' },
+
+  // built — house
+  30: { color: 0xc9a97a, label: 'wooden_floor' },
+  31: { color: 0x6e5c44, label: 'wall' },
+  32: { color: 0x8a3a3a, label: 'roof' },
+  33: { color: 0x4a3420, label: 'door' },
 };
 
 export function getTileDef(tileId: number): TileDef | null {

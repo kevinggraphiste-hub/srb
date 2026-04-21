@@ -5,6 +5,7 @@
   "width": 20,
   "height": 15,
   "tilesetId": "placeholder",
+  "defaultSpawnTile": { "x": 10, "y": 13 },
   "layers": {
     "ground": [
       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -49,9 +50,9 @@
       [10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10],
       [10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10],
       [10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10],
-      [10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10],
-      [10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10],
-      [10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10],
+      [10, -1, -1, -1, -1, -1, -1, -1, -1, 32, 32, 32, 32, -1, -1, -1, -1, -1, -1, 10],
+      [10, -1, -1, -1, -1, -1, -1, -1, -1, 32, 32, 32, 32, -1, -1, -1, -1, -1, -1, 10],
+      [10, -1, -1, -1, -1, -1, -1, -1, -1, 31, 33, 31, 31, -1, -1, -1, -1, -1, -1, 10],
       [10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, -1, -1, 10],
       [10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10],
       [10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10],
@@ -67,13 +68,31 @@
     [true, false, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, true],
     [true, false, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, true],
     [true, false, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false, true],
-    [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
-    [true, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false, false, false, true],
-    [true, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false, false, false, true],
+    [true, false, false, false, false, false, false, false, false, true, true, true, true, false, false, false, false, false, false, true],
+    [true, false, false, false, false, false, false, false, false, true, true, true, true, true, true, true, false, false, false, true],
+    [true, false, false, false, false, false, false, false, false, true, false, true, true, true, true, true, false, false, false, true],
     [true, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false, true, false, true],
     [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
     [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
     [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]
   ],
-  "events": []
+  "events": [
+    {
+      "id": "door-village-to-house",
+      "name": "Entrée de la maison",
+      "x": 10,
+      "y": 10,
+      "pages": [
+        {
+          "conditions": [],
+          "trigger": "contact",
+          "graphic": { "spriteId": null, "direction": "down", "frame": 0 },
+          "movement": { "type": "fixed" },
+          "commands": [
+            { "type": "transfer", "mapId": "house-01", "x": 5, "y": 5 }
+          ]
+        }
+      ]
+    }
+  ]
 }
