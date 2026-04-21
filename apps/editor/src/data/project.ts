@@ -77,4 +77,135 @@ export function setActiveMapId(project: Project, mapId: string): Project {
   return { ...project, activeMapId: mapId };
 }
 
+/** Renames a map or folder (immutable). */
+export function renameItem(project: Project, itemId: string, newName: string): Project {
+  return {
+    ...project,
+    items: project.items.map((item) => {
+      if (getItemId(item) !== itemId) return item;
+      if (item.type === 'folder') return { ...item, name: newName };
+      return { ...item, map: { ...item.map, name: newName } };
+    }),
+  };
+}
+
+/** Returns ids of `itemId` and all its descendants. */
+export function collectDescendants(items: ProjectItem[], itemId: string): Set<string> {
+  const out = new Set<string>([itemId]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const item of items) {
+      const parent = getItemParentId(item);
+      const self = getItemId(item);
+      if (parent && out.has(parent) && !out.has(self)) {
+        out.add(self);
+        changed = true;
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Deletes an item and all its descendants. If the active map was in the
+ * deleted subtree, activeMapId falls back to the first remaining map, or null.
+ */
+export function deleteItem(project: Project, itemId: string): Project {
+  const toDelete = collectDescendants(project.items, itemId);
+  const nextItems = project.items.filter((i) => !toDelete.has(getItemId(i)));
+  let nextActive: string | null = project.activeMapId;
+  if (nextActive && toDelete.has(nextActive)) {
+    const firstMap = nextItems.find(
+      (i): i is Extract<ProjectItem, { type: 'map' }> => i.type === 'map',
+    );
+    nextActive = firstMap ? firstMap.map.id : null;
+  }
+  return { ...project, items: nextItems, activeMapId: nextActive };
+}
+
+/**
+ * Moves an item under a new parent. No-op if the move would create a cycle
+ * (target is inside the moved subtree). Reorders the source as the last child.
+ */
+export function moveItem(project: Project, sourceId: string, newParentId?: string): Project {
+  if (sourceId === newParentId) return project;
+  if (newParentId) {
+    const cycle = collectDescendants(project.items, sourceId);
+    if (cycle.has(newParentId)) return project;
+  }
+  const nextOrder = nextSiblingOrder(
+    project.items.filter((i) => getItemId(i) !== sourceId),
+    newParentId,
+  );
+  return {
+    ...project,
+    items: project.items.map((item) => {
+      if (getItemId(item) !== sourceId) return item;
+      if (item.type === 'folder') {
+        return { ...item, parentId: newParentId, order: nextOrder };
+      }
+      return { ...item, map: { ...item.map, parentId: newParentId, order: nextOrder } };
+    }),
+  };
+}
+
+/** Resizes a map by cropping or padding its grids to the new dimensions. */
+export function resizeMap(
+  project: Project,
+  mapId: string,
+  newWidth: number,
+  newHeight: number,
+): Project {
+  return {
+    ...project,
+    items: project.items.map((item) => {
+      if (item.type !== 'map' || item.map.id !== mapId) return item;
+      return { ...item, map: resizeMapGrids(item.map, newWidth, newHeight) };
+    }),
+  };
+}
+
+function resizeMapGrids(map: GameMap, w: number, h: number): GameMap {
+  const resizeTileGrid = (grid: number[][] | undefined, fill: number): number[][] | undefined => {
+    if (!grid) return grid;
+    const out: number[][] = [];
+    for (let y = 0; y < h; y++) {
+      const src = grid[y];
+      const row: number[] = [];
+      for (let x = 0; x < w; x++) {
+        row.push(src?.[x] ?? fill);
+      }
+      out.push(row);
+    }
+    return out;
+  };
+  const resizeCollisionGrid = (grid: boolean[][]): boolean[][] => {
+    const out: boolean[][] = [];
+    for (let y = 0; y < h; y++) {
+      const src = grid[y];
+      const row: boolean[] = [];
+      for (let x = 0; x < w; x++) {
+        row.push(src?.[x] ?? false);
+      }
+      out.push(row);
+    }
+    return out;
+  };
+  return {
+    ...map,
+    width: w,
+    height: h,
+    layers: {
+      background: resizeTileGrid(map.layers.background, -1),
+      ground: resizeTileGrid(map.layers.ground, 0) as number[][],
+      detail: resizeTileGrid(map.layers.detail, -1),
+      objects: resizeTileGrid(map.layers.objects, -1),
+      overlay: resizeTileGrid(map.layers.overlay, -1),
+    },
+    collision: resizeCollisionGrid(map.collision),
+    events: map.events.filter((e) => e.x < w && e.y < h),
+  };
+}
+
 export { getItemId };

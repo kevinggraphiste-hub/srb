@@ -293,6 +293,30 @@ body {
   color: #ff6b6b;
 }
 
+.tree-row.drop-target {
+  background: #1e2a1e;
+  outline: 1px dashed #5ed07a;
+  outline-offset: -1px;
+}
+
+.tree-rename-input {
+  flex: 1;
+  background: #0a0a0a;
+  color: #fff;
+  border: 1px solid #ff6b6b;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 12px;
+  font-family: monospace;
+  min-width: 0;
+}
+
+.tree-hint {
+  margin-left: auto;
+  font-size: 10px;
+  color: #555;
+}
+
 .tree-icon {
   font-size: 11px;
 }

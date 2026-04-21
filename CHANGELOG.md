@@ -4,6 +4,32 @@ Toutes les modifications notables de SRB sont listées ici.
 
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et le projet suit [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.2.2] — 2026-04-21 — Éditeur : project + tree + map edit
+
+Début de l'éditeur de maps (`apps/editor`) jouable en parallèle du player.
+
+### Added
+
+- **Éditeur React + Vite + Phaser** sur http://localhost:5174 (port 5174 pour coexister avec le player sur 5173)
+- Palette de tiles partagée avec le player (tile-registry migré dans `@srb/engine`)
+- Outils **Stamp** et **Eraser**, raccourcis **B** / **E**, hover coloré (rouge stamp, gris eraser)
+- Sélection de la couche active : ground / detail / objects
+- Peinture en clic simple ou drag
+- **Project** : un projet contient plusieurs maps + dossiers, arborescence façon RPG Maker (voir `@srb/types` : `Project`, `ProjectItem`, `ProjectFolderItem`)
+- **ProjectTree** dans le panneau droit avec :
+  - Double-clic pour **renommer** en place
+  - Bouton ⚙ sur une map pour **modifier taille + nom** (resize crop/pad propre des layers + events)
+  - Bouton ✕ pour **supprimer** (cascade sur les enfants, confirmation)
+  - **Drag & drop** pour déplacer un item sous un autre item (map ou dossier) ou à la racine
+  - Boutons +M / +F sur les dossiers pour ajouter map / sous-dossier à l'intérieur
+- Modal **Nouvelle map** avec nom + dimensions custom (1–200 tiles chaque)
+- Filiation **map → map** supportée (une maison peut avoir ses pièces en enfants directs, sans passer par un dossier)
+
+### Changed
+
+- `packages/engine` exporte maintenant la `TILE_REGISTRY` partagée
+- `apps/player` importe tile-registry depuis `@srb/engine` (au lieu de son propre fichier local)
+
 ## [0.2.1] — 2026-04-21 — NPC + dialogues
 
 Extension du runtime avec les briques qu'il manquait pour faire vivre une map.
