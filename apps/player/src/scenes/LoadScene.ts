@@ -1,11 +1,24 @@
 import * as Phaser from 'phaser';
 import { loadMap } from '../loaders/map-loader';
+import {
+  PLAYER_FRAME_HEIGHT,
+  PLAYER_FRAME_WIDTH,
+  PLAYER_SHEET_KEY,
+  PLAYER_SHEET_PATH,
+} from '../entities/Player';
 
 const STARTING_MAP_ID = 'village-01';
 
 export class LoadScene extends Phaser.Scene {
   constructor() {
     super({ key: 'LoadScene' });
+  }
+
+  preload(): void {
+    this.load.spritesheet(PLAYER_SHEET_KEY, PLAYER_SHEET_PATH, {
+      frameWidth: PLAYER_FRAME_WIDTH,
+      frameHeight: PLAYER_FRAME_HEIGHT,
+    });
   }
 
   async create(): Promise<void> {

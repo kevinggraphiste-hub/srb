@@ -2,11 +2,9 @@ import * as Phaser from 'phaser';
 import type { GameMap } from '@srb/types';
 import { renderMapBase, renderMapOverlay, TILE_SIZE } from '../rendering/MapRenderer';
 import { isFeetBlocked } from '../systems/collision';
+import { Player } from '../entities/Player';
 
-const MOVE_SPEED_PX_PER_SEC = 200;
-const PLAYER_WIDTH = TILE_SIZE;
-const PLAYER_HEIGHT = TILE_SIZE * 2;
-const PLAYER_COLOR = 0xff6b6b;
+const MOVE_SPEED_PX_PER_SEC = 160;
 
 interface PlaySceneData {
   map: GameMap;
@@ -14,7 +12,7 @@ interface PlaySceneData {
 
 export class PlayScene extends Phaser.Scene {
   private map!: GameMap;
-  private player!: Phaser.GameObjects.Rectangle;
+  private player!: Player;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
 
   constructor() {
@@ -36,18 +34,15 @@ export class PlayScene extends Phaser.Scene {
 
     const startTileX = Math.floor(this.map.width / 2);
     const startTileY = Math.floor(this.map.height / 2);
-    this.player = this.add.rectangle(
+    this.player = new Player(
+      this,
       startTileX * TILE_SIZE + TILE_SIZE / 2,
       (startTileY + 1) * TILE_SIZE,
-      PLAYER_WIDTH,
-      PLAYER_HEIGHT,
-      PLAYER_COLOR,
     );
-    this.player.setOrigin(0.5, 1);
 
     renderMapOverlay(this, this.map);
 
-    this.cameras.main.startFollow(this.player, true);
+    this.cameras.main.startFollow(this.player.sprite, true);
 
     const keyboard = this.input.keyboard;
     if (!keyboard) {
@@ -67,18 +62,24 @@ export class PlayScene extends Phaser.Scene {
   override update(_time: number, delta: number): void {
     const distance = (MOVE_SPEED_PX_PER_SEC * delta) / 1000;
 
-    let dx = 0;
-    let dy = 0;
-    if (this.cursors.left.isDown) dx -= distance;
-    if (this.cursors.right.isDown) dx += distance;
-    if (this.cursors.up.isDown) dy -= distance;
-    if (this.cursors.down.isDown) dy += distance;
+    let intentDx = 0;
+    let intentDy = 0;
+    if (this.cursors.left.isDown) intentDx -= distance;
+    if (this.cursors.right.isDown) intentDx += distance;
+    if (this.cursors.up.isDown) intentDy -= distance;
+    if (this.cursors.down.isDown) intentDy += distance;
 
-    if (dx !== 0 && !isFeetBlocked(this.map, this.player.x + dx, this.player.y)) {
-      this.player.x += dx;
+    let appliedDx = 0;
+    let appliedDy = 0;
+    if (intentDx !== 0 && !isFeetBlocked(this.map, this.player.x + intentDx, this.player.y)) {
+      this.player.x += intentDx;
+      appliedDx = intentDx;
     }
-    if (dy !== 0 && !isFeetBlocked(this.map, this.player.x, this.player.y + dy)) {
-      this.player.y += dy;
+    if (intentDy !== 0 && !isFeetBlocked(this.map, this.player.x, this.player.y + intentDy)) {
+      this.player.y += intentDy;
+      appliedDy = intentDy;
     }
+
+    this.player.syncAnimation(appliedDx, appliedDy);
   }
 }
