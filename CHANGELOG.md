@@ -4,6 +4,30 @@ Toutes les modifications notables de SRB sont listées ici.
 
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et le projet suit [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.2.1] — 2026-04-21 — NPC + dialogues
+
+Extension du runtime avec les briques qu'il manquait pour faire vivre une map.
+
+### Added
+
+- **Trigger `action`** — appuyer sur Espace (ou bouton A tactile) déclenche l'event sur la tile en face du joueur, selon sa direction courante
+- **Commande `show_text`** vraiment fonctionnelle via une nouvelle `DialogBox` (overlay bas d'écran, fermeture à Espace)
+- **Exécution séquentielle des commandes** : un event peut enchaîner plusieurs `show_text` avant un éventuel `transfer`
+- **NPCs sur la map** : chaque event avec `graphic.spriteId` non-null apparaît comme un sprite au monde, charge sa `CharacterSheet` et ses animations
+- **`CharacterSheet.tint`** optionnel — permet de palette-swap un sprite existant pour un NPC placeholder
+- **Y-sorting** : la profondeur du joueur et des NPCs suit leur feet-y, donc passer au-dessus d'un perso le fait apparaître devant vous naturellement (plus de "marche sur la tête")
+- **Bouton A** sur le dpad tactile pour les interactions
+
+### Changed
+
+- `collision.isFeetBlocked` prend maintenant une `CollisionGrid` + dimensions au lieu d'un `GameMap` — le site d'appel peut mélanger collision statique et tiles dynamiques (NPCs, objets bloquants)
+- `EventRunner` ne contient plus `runCommands` — la logique séquentielle est dans `PlayScene` parce qu'elle doit mettre en pause l'update loop pendant les dialogues
+- `LoadScene` scanne les events de la map pour charger automatiquement les `CharacterSheet` et spritesheets dont elle a besoin
+
+### Content
+
+- Le village a maintenant un **villageois** (placeholder Ash teinté bleu) en bas-gauche avec un dialogue en 3 messages — dit "Bienvenue à SRB" et renvoie vers la maison du maire
+
 ## [0.2.0] — 2026-04-21 — Phase 1 « Runtime minimal »
 
 Premier runtime de jeu jouable dans le navigateur.
