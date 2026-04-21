@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import type { GameMap } from '@srb/types';
 import { renderMapBase, renderMapOverlay, TILE_SIZE } from '../rendering/MapRenderer';
+import { isFeetBlocked } from '../systems/collision';
 
 const MOVE_SPEED_PX_PER_SEC = 200;
 const PLAYER_WIDTH = TILE_SIZE;
@@ -66,9 +67,18 @@ export class PlayScene extends Phaser.Scene {
   override update(_time: number, delta: number): void {
     const distance = (MOVE_SPEED_PX_PER_SEC * delta) / 1000;
 
-    if (this.cursors.left.isDown) this.player.x -= distance;
-    if (this.cursors.right.isDown) this.player.x += distance;
-    if (this.cursors.up.isDown) this.player.y -= distance;
-    if (this.cursors.down.isDown) this.player.y += distance;
+    let dx = 0;
+    let dy = 0;
+    if (this.cursors.left.isDown) dx -= distance;
+    if (this.cursors.right.isDown) dx += distance;
+    if (this.cursors.up.isDown) dy -= distance;
+    if (this.cursors.down.isDown) dy += distance;
+
+    if (dx !== 0 && !isFeetBlocked(this.map, this.player.x + dx, this.player.y)) {
+      this.player.x += dx;
+    }
+    if (dy !== 0 && !isFeetBlocked(this.map, this.player.x, this.player.y + dy)) {
+      this.player.y += dy;
+    }
   }
 }
