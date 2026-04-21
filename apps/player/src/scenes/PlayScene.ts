@@ -29,7 +29,7 @@ export class PlayScene extends Phaser.Scene {
   private input2!: InputProvider;
   private dialogBox!: DialogBox;
 
-  /** Static collision from the map merged with NPC tiles. */
+  /** Static collision from the map + NPC tiles (merged at create time). */
   private effectiveCollision!: CollisionGrid;
 
   private lastPlayerTileKey = '';
@@ -60,8 +60,17 @@ export class PlayScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
 
     renderMapBase(this, this.map);
+    this.effectiveCollision = this.map.collision.map((row) => [...row]);
     this.spawnNpcs();
-    this.buildEffectiveCollision();
+    // NPC tiles become blocking for the player. Collision on the whole tile
+    // feels right here; the y-sort below keeps visuals natural when the player
+    // passes above an NPC (player is rendered behind the NPC sprite).
+    for (const event of this.map.events) {
+      const page = event.pages[0];
+      if (!page || !page.graphic.spriteId) continue;
+      const row = this.effectiveCollision[event.y];
+      if (row) row[event.x] = true;
+    }
 
     const spawnTileX =
       this.spawnTileX ?? this.map.defaultSpawnTile?.x ?? Math.floor(this.map.width / 2);
@@ -75,7 +84,10 @@ export class PlayScene extends Phaser.Scene {
     );
     this.lastPlayerTileKey = `${spawnTileX},${spawnTileY}`;
 
-    renderMapOverlay(this, this.map);
+    // Overlay tiles (roofs, treetops) render above every character by depth
+    // regardless of feet-y. Large constant safely beats any map height.
+    const overlay = renderMapOverlay(this, this.map);
+    overlay?.setDepth(100000);
 
     this.cameras.main.startFollow(this.player.sprite, true);
 
@@ -158,6 +170,10 @@ export class PlayScene extends Phaser.Scene {
     }
 
     this.player.syncMovement(appliedDx, appliedDy);
+    // Y-sort: the player's depth is its feet-y, so it's drawn behind NPCs whose
+    // feet are below it and in front of NPCs whose feet are above it. RPG-Maker
+    // / JRPG convention; keeps overlap natural when walking past characters.
+    this.player.sprite.setDepth(this.player.y);
     this.checkContactEvents();
   }
 
@@ -170,9 +186,12 @@ export class PlayScene extends Phaser.Scene {
 
       Player.ensureAnims(this, sheet);
 
+      const feetX = event.x * TILE_SIZE + TILE_SIZE / 2;
+      const feetY = (event.y + 1) * TILE_SIZE;
+
       const sprite = this.add.sprite(
-        event.x * TILE_SIZE + TILE_SIZE / 2,
-        (event.y + 1) * TILE_SIZE,
+        feetX,
+        feetY,
         sheet.id,
         sheet.idleFrames[page.graphic.direction],
       );
@@ -180,16 +199,7 @@ export class PlayScene extends Phaser.Scene {
       if (sheet.tint !== undefined) {
         sprite.setTint(sheet.tint);
       }
-    }
-  }
-
-  private buildEffectiveCollision(): void {
-    this.effectiveCollision = this.map.collision.map((row) => [...row]);
-    for (const event of this.map.events) {
-      const page = event.pages[0];
-      if (!page || !page.graphic.spriteId) continue;
-      const row = this.effectiveCollision[event.y];
-      if (row) row[event.x] = true;
+      sprite.setDepth(feetY);
     }
   }
 
