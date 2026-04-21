@@ -4,13 +4,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "echo 'player dev — TODO'",
-    "build": "echo 'player build — TODO'",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo"
   },
-  "dependencies": {},
+  "dependencies": {
+    "phaser": "^4.0.0"
+  },
   "devDependencies": {
-    "typescript": "^5.7.2"
+    "@types/node": "^25.6.0",
+    "typescript": "^5.7.2",
+    "vite": "^8.0.9"
   }
 }
