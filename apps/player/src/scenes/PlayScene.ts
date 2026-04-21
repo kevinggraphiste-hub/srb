@@ -1,12 +1,18 @@
 import * as Phaser from 'phaser';
+import type { GameMap } from '@srb/types';
+import { renderMapBase, renderMapOverlay, TILE_SIZE } from '../rendering/MapRenderer';
 
 const MOVE_SPEED_PX_PER_SEC = 200;
-const TILE_SIZE = 32;
 const PLAYER_WIDTH = TILE_SIZE;
 const PLAYER_HEIGHT = TILE_SIZE * 2;
 const PLAYER_COLOR = 0xff6b6b;
 
+interface PlaySceneData {
+  map: GameMap;
+}
+
 export class PlayScene extends Phaser.Scene {
+  private map!: GameMap;
   private player!: Phaser.GameObjects.Rectangle;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
 
@@ -14,17 +20,33 @@ export class PlayScene extends Phaser.Scene {
     super({ key: 'PlayScene' });
   }
 
-  create(): void {
-    this.cameras.main.setBackgroundColor('#1a1a1a');
+  init(data: PlaySceneData): void {
+    this.map = data.map;
+  }
 
+  create(): void {
+    const worldWidth = this.map.width * TILE_SIZE;
+    const worldHeight = this.map.height * TILE_SIZE;
+
+    this.cameras.main.setBackgroundColor('#0a0a0a');
+    this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+
+    renderMapBase(this, this.map);
+
+    const startTileX = Math.floor(this.map.width / 2);
+    const startTileY = Math.floor(this.map.height / 2);
     this.player = this.add.rectangle(
-      this.scale.width / 2,
-      this.scale.height / 2,
+      startTileX * TILE_SIZE + TILE_SIZE / 2,
+      (startTileY + 1) * TILE_SIZE,
       PLAYER_WIDTH,
       PLAYER_HEIGHT,
       PLAYER_COLOR,
     );
     this.player.setOrigin(0.5, 1);
+
+    renderMapOverlay(this, this.map);
+
+    this.cameras.main.startFollow(this.player, true);
 
     const keyboard = this.input.keyboard;
     if (!keyboard) {
@@ -32,11 +54,13 @@ export class PlayScene extends Phaser.Scene {
     }
     this.cursors = keyboard.createCursorKeys();
 
-    this.add.text(8, 8, 'SRB — use arrow keys', {
-      color: '#888',
-      fontSize: '12px',
-      fontFamily: 'monospace',
-    });
+    this.add
+      .text(8, 8, `SRB — ${this.map.name} — arrow keys to move`, {
+        color: '#888',
+        fontSize: '12px',
+        fontFamily: 'monospace',
+      })
+      .setScrollFactor(0);
   }
 
   override update(_time: number, delta: number): void {

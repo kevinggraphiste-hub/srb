@@ -53,6 +53,9 @@ importers:
 
   apps/player:
     dependencies:
+      '@srb/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       phaser:
         specifier: ^4.0.0
         version: 4.0.0

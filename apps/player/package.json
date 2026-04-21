@@ -11,6 +11,7 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
+    "@srb/types": "workspace:*",
     "phaser": "^4.0.0"
   },
   "devDependencies": {
