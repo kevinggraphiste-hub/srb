@@ -3,6 +3,7 @@ import type { CharacterSheet, GameMap } from '@srb/types';
 import { renderMapBase, renderMapOverlay, TILE_SIZE } from '../rendering/MapRenderer';
 import { isFeetBlocked } from '../systems/collision';
 import { findEventAt, getActivePage, runCommands } from '../systems/EventRunner';
+import { InputProvider } from '../systems/InputProvider';
 import { Player } from '../entities/Player';
 import { loadMap } from '../loaders/map-loader';
 
@@ -22,7 +23,7 @@ export class PlayScene extends Phaser.Scene {
   private spawnTileX?: number;
   private spawnTileY?: number;
   private player!: Player;
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
+  private input2!: InputProvider;
   private lastPlayerTileKey = '';
   private transferring = false;
 
@@ -64,11 +65,7 @@ export class PlayScene extends Phaser.Scene {
 
     this.cameras.main.startFollow(this.player.sprite, true);
 
-    const keyboard = this.input.keyboard;
-    if (!keyboard) {
-      throw new Error('Keyboard input plugin not available');
-    }
-    this.cursors = keyboard.createCursorKeys();
+    this.input2 = new InputProvider(this);
 
     this.add
       .text(8, 8, `SRB — ${this.map.name} — arrow keys to move`, {
@@ -86,10 +83,10 @@ export class PlayScene extends Phaser.Scene {
 
     let intentDx = 0;
     let intentDy = 0;
-    if (this.cursors.left.isDown) intentDx -= distance;
-    if (this.cursors.right.isDown) intentDx += distance;
-    if (this.cursors.up.isDown) intentDy -= distance;
-    if (this.cursors.down.isDown) intentDy += distance;
+    if (this.input2.isLeft()) intentDx -= distance;
+    if (this.input2.isRight()) intentDx += distance;
+    if (this.input2.isUp()) intentDy -= distance;
+    if (this.input2.isDown()) intentDy += distance;
 
     const fpW = this.player.footprintWidth;
     const fpH = this.player.footprintHeight;
