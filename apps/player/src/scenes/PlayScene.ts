@@ -1,7 +1,9 @@
 import * as Phaser from 'phaser';
 
 const MOVE_SPEED_PX_PER_SEC = 200;
-const PLAYER_SIZE = 32;
+const TILE_SIZE = 32;
+const PLAYER_WIDTH = TILE_SIZE;
+const PLAYER_HEIGHT = TILE_SIZE * 2;
 const PLAYER_COLOR = 0xff6b6b;
 
 export class PlayScene extends Phaser.Scene {
@@ -18,10 +20,11 @@ export class PlayScene extends Phaser.Scene {
     this.player = this.add.rectangle(
       this.scale.width / 2,
       this.scale.height / 2,
-      PLAYER_SIZE,
-      PLAYER_SIZE,
+      PLAYER_WIDTH,
+      PLAYER_HEIGHT,
       PLAYER_COLOR,
     );
+    this.player.setOrigin(0.5, 1);
 
     const keyboard = this.input.keyboard;
     if (!keyboard) {
