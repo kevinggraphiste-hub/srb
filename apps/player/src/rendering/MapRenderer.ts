@@ -1,6 +1,6 @@
 import type * as Phaser from 'phaser';
 import type { GameMap, TileGrid } from '@srb/types';
-import { getTileDef } from '../data/tile-registry';
+import { getTileDef } from '@srb/engine';
 
 export const TILE_SIZE = 32;
 

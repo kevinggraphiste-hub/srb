@@ -4,13 +4,25 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "echo 'editor dev — TODO'",
-    "build": "echo 'editor build — TODO'",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@srb/engine": "workspace:*",
+    "phaser": "^4.0.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
   "devDependencies": {
-    "typescript": "^5.7.2"
+    "@srb/types": "workspace:*",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "typescript": "^5.7.2",
+    "vite": "^8.0.9"
   }
 }

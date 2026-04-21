@@ -1,6 +1,9 @@
 /**
  * Placeholder tile registry — maps tile IDs to solid colors.
- * Will be replaced in Phase 2 when real tileset images are introduced.
+ * Shared between the runtime (`apps/player`) and the editor (`apps/editor`)
+ * so a tile painted in the editor looks exactly like it renders in-game.
+ *
+ * Will be replaced in Phase 2 once real tileset images are supported.
  */
 
 export interface TileDef {

@@ -1,0 +1,420 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  background: #0a0a0a;
+  color: #e0e0e0;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  overflow: hidden;
+}
+
+.editor-root {
+  display: grid;
+  grid-template-columns: 220px 1fr 240px;
+  grid-template-rows: 40px 1fr;
+  grid-template-areas:
+    'header header header'
+    'palette canvas inspector';
+  height: 100%;
+}
+
+.editor-header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: #141414;
+  border-bottom: 1px solid #333;
+  gap: 16px;
+}
+
+.editor-header h1 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ff6b6b;
+}
+
+.editor-header .subtitle {
+  font-size: 12px;
+  color: #888;
+}
+
+.editor-header .header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+}
+
+.editor-header .header-actions button {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: monospace;
+  cursor: pointer;
+}
+
+.editor-header .header-actions button:disabled {
+  color: #444;
+  cursor: not-allowed;
+}
+
+.editor-header .header-actions button:not(:disabled):hover {
+  background: #262626;
+}
+
+.tool-select {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 12px;
+}
+
+.tool-select button {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: monospace;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tool-select button:hover {
+  background: #262626;
+}
+
+.tool-select button.active {
+  background: #2a1e1e;
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.tool-select .hint {
+  opacity: 0.6;
+  font-size: 10px;
+}
+
+.editor-panel {
+  background: #141414;
+  overflow: auto;
+}
+
+.editor-panel h2 {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #888;
+  padding: 12px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.palette {
+  grid-area: palette;
+  border-right: 1px solid #333;
+}
+
+.palette-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 12px;
+}
+
+.palette-tile {
+  aspect-ratio: 1;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.08s;
+}
+
+.palette-tile:hover {
+  transform: scale(1.05);
+}
+
+.palette-tile.active {
+  border-color: #ff6b6b;
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.25);
+}
+
+.palette-tile .label {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  right: 2px;
+  font-size: 9px;
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8);
+  text-align: center;
+  pointer-events: none;
+  font-family: monospace;
+}
+
+.layer-select {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid #2a2a2a;
+}
+
+.layer-select button {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: monospace;
+  cursor: pointer;
+  text-align: left;
+}
+
+.layer-select button:hover {
+  background: #262626;
+}
+
+.layer-select button.active {
+  background: #2a1e1e;
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.map-canvas-wrapper {
+  grid-area: canvas;
+  background: #0a0a0a;
+  overflow: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 16px;
+}
+
+#map-canvas {
+  background: #1a1a1a;
+  box-shadow: 0 0 0 1px #333;
+}
+
+.inspector {
+  grid-area: inspector;
+  border-left: 1px solid #333;
+  padding: 12px;
+}
+
+.inspector p {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.empty-state {
+  color: #555;
+  font-size: 13px;
+  padding: 48px;
+}
+
+/* Project tree */
+.project-tree {
+  margin-top: 4px;
+}
+
+.project-tree-toolbar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.project-tree-toolbar button {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: monospace;
+}
+
+.project-tree-toolbar button:hover {
+  background: #262626;
+}
+
+.tree-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #ccc;
+  user-select: none;
+  border-radius: 3px;
+}
+
+.tree-row.folder {
+  cursor: default;
+}
+
+.tree-row:hover {
+  background: #1e1e1e;
+}
+
+.tree-row.active {
+  background: #2a1e1e;
+  color: #ff6b6b;
+}
+
+.tree-icon {
+  font-size: 11px;
+}
+
+.tree-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree-actions {
+  display: flex;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.tree-row:hover .tree-actions {
+  opacity: 1;
+}
+
+.tree-actions button {
+  background: #0a0a0a;
+  color: #888;
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 9px;
+  font-family: monospace;
+  cursor: pointer;
+}
+
+.tree-actions button:hover {
+  color: #ff6b6b;
+  border-color: #ff6b6b;
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #141414;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 20px;
+  min-width: 320px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+.modal h3 {
+  font-size: 14px;
+  color: #ff6b6b;
+  margin-bottom: 12px;
+}
+
+.modal label {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.modal label input {
+  display: block;
+  width: 100%;
+  background: #0a0a0a;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 13px;
+  font-family: monospace;
+  margin-top: 4px;
+}
+
+.modal-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.modal-hint {
+  font-size: 11px;
+  color: #666;
+  margin: 4px 0 14px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.modal-actions button {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: monospace;
+}
+
+.modal-actions button.primary {
+  background: #ff6b6b;
+  color: #0a0a0a;
+  border-color: #ff6b6b;
+}
+
+.modal-actions button:hover {
+  filter: brightness(1.15);
+}
