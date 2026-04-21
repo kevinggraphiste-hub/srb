@@ -15,15 +15,19 @@ Date : YYYY-MM-DD
 Statut : proposée | acceptée | remplacée par NNNN | obsolète
 
 ## Contexte
+
 Pourquoi cette décision se pose.
 
 ## Options envisagées
+
 - Option A — pour/contre
 - Option B — pour/contre
 
 ## Décision
+
 Ce qu'on a retenu et pourquoi.
 
 ## Conséquences
+
 Ce que ça implique (positif et négatif).
 ```

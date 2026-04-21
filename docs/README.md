@@ -2,12 +2,12 @@
 
 ## Plan par dossier
 
-| Dossier | Contenu |
-|---|---|
-| `architecture/` | Vues d'ensemble, flux de données, décisions d'archi (ADRs) |
-| `specs/` | Spécifications techniques des formats (project, map, events, API) |
-| `claude-code/` | Conventions, templates de tâches, review checklist pour Claude |
-| `user-guide/` | Guide utilisateur final (créateurs et joueurs) |
+| Dossier         | Contenu                                                           |
+| --------------- | ----------------------------------------------------------------- |
+| `architecture/` | Vues d'ensemble, flux de données, décisions d'archi (ADRs)        |
+| `specs/`        | Spécifications techniques des formats (project, map, events, API) |
+| `claude-code/`  | Conventions, templates de tâches, review checklist pour Claude    |
+| `user-guide/`   | Guide utilisateur final (créateurs et joueurs)                    |
 
 ## Principes
 
