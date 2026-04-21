@@ -73,4 +73,9 @@ export interface CharacterSheet {
   idleFrames: CharacterIdleFrames;
   /** Keyed by animation name. Keys can be StandardAnimationKey or custom. */
   animations: Record<string, AnimationDef>;
+  /**
+   * Optional color tint applied to the sprite as 0xRRGGBB. Useful for quick
+   * palette-swap NPCs sharing a sprite sheet image with another character.
+   */
+  tint?: number;
 }

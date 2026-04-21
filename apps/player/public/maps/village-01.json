@@ -93,6 +93,25 @@
           ]
         }
       ]
+    },
+    {
+      "id": "villager-01",
+      "name": "Villageois",
+      "x": 7,
+      "y": 12,
+      "pages": [
+        {
+          "conditions": [],
+          "trigger": "action",
+          "graphic": { "spriteId": "villager", "direction": "down", "frame": 0 },
+          "movement": { "type": "fixed" },
+          "commands": [
+            { "type": "show_text", "text": "Bienvenue à SRB, voyageur !" },
+            { "type": "show_text", "text": "La maison derrière moi appartient au maire." },
+            { "type": "show_text", "text": "Entre si tu veux, il accueille toujours les étrangers." }
+          ]
+        }
+      ]
     }
   ]
 }

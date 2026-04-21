@@ -17,7 +17,15 @@ export class Player {
     this.sheet = sheet;
     this.sprite = scene.add.sprite(x, y, sheet.id, sheet.idleFrames[this.direction]);
     this.sprite.setOrigin(sheet.originX, sheet.originY);
+    if (sheet.tint !== undefined) {
+      this.sprite.setTint(sheet.tint);
+    }
     Player.ensureAnims(scene, sheet);
+  }
+
+  /** Current facing direction — used by gameplay systems (e.g. action trigger facing). */
+  get facing(): Direction {
+    return this.direction;
   }
 
   /** Registers all animations from the sheet into the scene's anim manager (idempotent). */
