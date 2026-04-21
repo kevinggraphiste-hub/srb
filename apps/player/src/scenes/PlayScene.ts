@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import type { GameMap } from '@srb/types';
+import type { CharacterSheet, GameMap } from '@srb/types';
 import { renderMapBase, renderMapOverlay, TILE_SIZE } from '../rendering/MapRenderer';
 import { isFeetBlocked } from '../systems/collision';
 import { Player } from '../entities/Player';
@@ -8,10 +8,12 @@ const MOVE_SPEED_PX_PER_SEC = 160;
 
 interface PlaySceneData {
   map: GameMap;
+  playerSheet: CharacterSheet;
 }
 
 export class PlayScene extends Phaser.Scene {
   private map!: GameMap;
+  private playerSheet!: CharacterSheet;
   private player!: Player;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
 
@@ -21,6 +23,7 @@ export class PlayScene extends Phaser.Scene {
 
   init(data: PlaySceneData): void {
     this.map = data.map;
+    this.playerSheet = data.playerSheet;
   }
 
   create(): void {
@@ -38,6 +41,7 @@ export class PlayScene extends Phaser.Scene {
       this,
       startTileX * TILE_SIZE + TILE_SIZE / 2,
       (startTileY + 1) * TILE_SIZE,
+      this.playerSheet,
     );
 
     renderMapOverlay(this, this.map);
@@ -69,17 +73,26 @@ export class PlayScene extends Phaser.Scene {
     if (this.cursors.up.isDown) intentDy -= distance;
     if (this.cursors.down.isDown) intentDy += distance;
 
+    const fpW = this.player.footprintWidth;
+    const fpH = this.player.footprintHeight;
+
     let appliedDx = 0;
     let appliedDy = 0;
-    if (intentDx !== 0 && !isFeetBlocked(this.map, this.player.x + intentDx, this.player.y)) {
+    if (
+      intentDx !== 0 &&
+      !isFeetBlocked(this.map, this.player.x + intentDx, this.player.y, fpW, fpH)
+    ) {
       this.player.x += intentDx;
       appliedDx = intentDx;
     }
-    if (intentDy !== 0 && !isFeetBlocked(this.map, this.player.x, this.player.y + intentDy)) {
+    if (
+      intentDy !== 0 &&
+      !isFeetBlocked(this.map, this.player.x, this.player.y + intentDy, fpW, fpH)
+    ) {
       this.player.y += intentDy;
       appliedDy = intentDy;
     }
 
-    this.player.syncAnimation(appliedDx, appliedDy);
+    this.player.syncMovement(appliedDx, appliedDy);
   }
 }

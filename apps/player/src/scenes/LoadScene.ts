@@ -1,24 +1,13 @@
 import * as Phaser from 'phaser';
 import { loadMap } from '../loaders/map-loader';
-import {
-  PLAYER_FRAME_HEIGHT,
-  PLAYER_FRAME_WIDTH,
-  PLAYER_SHEET_KEY,
-  PLAYER_SHEET_PATH,
-} from '../entities/Player';
+import { loadCharacterSheet } from '../loaders/character-loader';
 
 const STARTING_MAP_ID = 'village-01';
+const STARTING_PLAYER_SHEET_ID = 'ash';
 
 export class LoadScene extends Phaser.Scene {
   constructor() {
     super({ key: 'LoadScene' });
-  }
-
-  preload(): void {
-    this.load.spritesheet(PLAYER_SHEET_KEY, PLAYER_SHEET_PATH, {
-      frameWidth: PLAYER_FRAME_WIDTH,
-      frameHeight: PLAYER_FRAME_HEIGHT,
-    });
   }
 
   async create(): Promise<void> {
@@ -35,8 +24,20 @@ export class LoadScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     try {
-      const map = await loadMap(STARTING_MAP_ID);
-      this.scene.start('PlayScene', { map });
+      const [map, playerSheet] = await Promise.all([
+        loadMap(STARTING_MAP_ID),
+        loadCharacterSheet(STARTING_PLAYER_SHEET_ID),
+      ]);
+
+      this.load.spritesheet(playerSheet.id, playerSheet.imagePath, {
+        frameWidth: playerSheet.frameWidth,
+        frameHeight: playerSheet.frameHeight,
+      });
+
+      this.load.once(Phaser.Loader.Events.COMPLETE, () => {
+        this.scene.start('PlayScene', { map, playerSheet });
+      });
+      this.load.start();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       this.add

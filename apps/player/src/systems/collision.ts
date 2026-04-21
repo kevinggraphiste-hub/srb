@@ -1,18 +1,21 @@
 import type { GameMap } from '@srb/types';
 import { TILE_SIZE } from '../rendering/MapRenderer';
 
-/** Small footprint at the feet — narrower than the sprite to feel natural. */
-const FOOTPRINT_WIDTH = TILE_SIZE - 4;
-const FOOTPRINT_HEIGHT = 6;
-
 /**
- * Checks whether a feet-position (x, y) — where y is the bottom of the sprite —
- * would intersect any blocking tile. Tests the 4 corners of a narrow footprint
- * rectangle centered on the feet, plus handles map bounds.
+ * Checks whether a feet-position (x, y) — bottom-center of the sprite —
+ * would intersect any blocking tile. The footprint rectangle size is
+ * supplied by the character sheet so boss/gobelin/squirrel can each
+ * have their own collision shape, independently of their visual size.
  */
-export function isFeetBlocked(map: GameMap, x: number, y: number): boolean {
-  const halfW = FOOTPRINT_WIDTH / 2;
-  const top = y - FOOTPRINT_HEIGHT;
+export function isFeetBlocked(
+  map: GameMap,
+  x: number,
+  y: number,
+  footprintWidth: number,
+  footprintHeight: number,
+): boolean {
+  const halfW = footprintWidth / 2;
+  const top = y - footprintHeight;
   const bottom = y - 1;
   const left = x - halfW;
   const right = x + halfW - 1;
