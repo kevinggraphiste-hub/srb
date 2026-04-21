@@ -5,3 +5,6 @@ build
 .turbo
 coverage
 pnpm-lock.yaml
+
+# Data files — grid layout is more readable than Prettier's one-number-per-line
+**/public/maps/*.json
