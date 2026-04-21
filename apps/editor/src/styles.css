@@ -244,7 +244,19 @@ body {
 .project-tree-toolbar {
   display: flex;
   gap: 6px;
+  align-items: center;
   margin-bottom: 8px;
+  padding: 6px;
+  border: 1px dashed transparent;
+  border-radius: 4px;
+  transition:
+    border-color 0.1s,
+    background 0.1s;
+}
+
+.project-tree-toolbar.drop-target {
+  border-color: #5ed07a;
+  background: #1e2a1e;
 }
 
 .project-tree-toolbar button {

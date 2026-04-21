@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Project, ProjectItem } from '@srb/types';
 import { getItemId, getItemName, getItemOrder, getItemParentId } from '@srb/types';
+import type React from 'react';
 
 const DRAG_MIME = 'application/srb-item-id';
 
@@ -41,14 +42,17 @@ function buildTree(items: ProjectItem[]): TreeNode[] {
 
 export function ProjectTree(props: ProjectTreeProps) {
   const roots = buildTree(props.project.items);
+  const [rootIsDropTarget, setRootIsDropTarget] = useState(false);
 
   const handleRootDragOver = (e: React.DragEvent): void => {
-    if (e.dataTransfer.types.includes(DRAG_MIME)) {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-    }
+    if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setRootIsDropTarget(true);
   };
+  const handleRootDragLeave = (): void => setRootIsDropTarget(false);
   const handleRootDrop = (e: React.DragEvent): void => {
+    setRootIsDropTarget(false);
     const sourceId = e.dataTransfer.getData(DRAG_MIME);
     if (!sourceId) return;
     e.preventDefault();
@@ -56,15 +60,22 @@ export function ProjectTree(props: ProjectTreeProps) {
   };
 
   return (
-    <div className="project-tree" onDragOver={handleRootDragOver} onDrop={handleRootDrop}>
-      <div className="project-tree-toolbar">
+    <div className="project-tree">
+      <div
+        className={`project-tree-toolbar${rootIsDropTarget ? ' drop-target' : ''}`}
+        onDragOver={handleRootDragOver}
+        onDragLeave={handleRootDragLeave}
+        onDrop={handleRootDrop}
+      >
         <button type="button" onClick={() => props.onNewMap(undefined)}>
           + Map
         </button>
         <button type="button" onClick={() => props.onNewFolder(undefined)}>
           + Dossier
         </button>
-        <span className="tree-hint">Glisse un item sur un dossier ou ici pour le déplacer</span>
+        <span className="tree-hint">
+          {rootIsDropTarget ? 'Lâcher ici pour détacher à la racine' : 'Glisse ici = racine'}
+        </span>
       </div>
       <ul className="tree-list">
         {roots.map((node) => (
@@ -96,6 +107,7 @@ function TreeNodeView({
   const name = getItemName(node.item);
   const isFolder = node.item.type === 'folder';
   const isActive = !isFolder && id === project.activeMapId;
+  const hasParent = getItemParentId(node.item) !== undefined;
 
   const [editing, setEditing] = useState(false);
   const [editedName, setEditedName] = useState(name);
@@ -213,6 +225,18 @@ function TreeNodeView({
               title="Paramètres de la map"
             >
               ⚙
+            </button>
+          )}
+          {hasParent && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMove(id, undefined);
+              }}
+              title="Détacher à la racine"
+            >
+              ⇡
             </button>
           )}
           <button
