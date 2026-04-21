@@ -7,6 +7,9 @@ import { MapCanvas } from './components/MapCanvas';
 import { ProjectTree } from './components/ProjectTree';
 import { NewMapDialog } from './components/NewMapDialog';
 import { ResizeMapDialog } from './components/ResizeMapDialog';
+import { ResizeHandle } from './components/ResizeHandle';
+import { WorkspaceMenu } from './components/WorkspaceMenu';
+import { MAX_PANEL_WIDTH, MIN_PANEL_WIDTH, useWorkspace } from './hooks/useWorkspace';
 import { createBlankMap } from './data/blank-map';
 import {
   addFolderToProject,
@@ -21,7 +24,7 @@ import {
   setActiveMapId,
 } from './data/project';
 
-const APP_VERSION = '0.2.2';
+const APP_VERSION = '0.2.3';
 
 export function App() {
   const [project, setProject] = useState<Project>(() => createBlankProject());
@@ -31,8 +34,9 @@ export function App() {
 
   const [newMapParentId, setNewMapParentId] = useState<string | undefined>(undefined);
   const [newMapDialogOpen, setNewMapDialogOpen] = useState(false);
-
   const [settingsMapId, setSettingsMapId] = useState<string | null>(null);
+
+  const workspace = useWorkspace();
 
   const activeMap: GameMap | null = getActiveMap(project);
 
@@ -109,8 +113,10 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  const gridTemplateColumns = `${workspace.layout.paletteWidth}px 4px 1fr 4px ${workspace.layout.inspectorWidth}px`;
+
   return (
-    <div className="editor-root">
+    <div className="editor-root" style={{ gridTemplateColumns }}>
       <header className="editor-header">
         <h1>SRB Editor</h1>
         <span className="subtitle">
@@ -118,6 +124,13 @@ export function App() {
           {activeMap ? ` · ${activeMap.name} (${activeMap.width}×${activeMap.height})` : ''}
         </span>
         <div className="header-actions">
+          <WorkspaceMenu
+            presets={workspace.presets}
+            onSaveAs={workspace.saveAsPreset}
+            onApply={workspace.applyPreset}
+            onDelete={workspace.deletePreset}
+            onReset={workspace.resetToDefault}
+          />
           <button type="button" onClick={() => openNewMapDialog(undefined)}>
             + Nouvelle map
           </button>
@@ -131,6 +144,16 @@ export function App() {
         <Palette selectedTileId={selectedTileId} onSelect={setSelectedTileId} />
         <LayerSelect active={activeLayer} onChange={setActiveLayer} />
       </aside>
+
+      <div className="resize-gutter resize-gutter-left">
+        <ResizeHandle
+          side="left"
+          width={workspace.layout.paletteWidth}
+          minWidth={MIN_PANEL_WIDTH}
+          maxWidth={MAX_PANEL_WIDTH}
+          onWidthChange={(next) => workspace.setLayout({ ...workspace.layout, paletteWidth: next })}
+        />
+      </div>
 
       <main className="map-canvas-wrapper">
         {activeMap ? (
@@ -149,6 +172,18 @@ export function App() {
         )}
       </main>
 
+      <div className="resize-gutter resize-gutter-right">
+        <ResizeHandle
+          side="right"
+          width={workspace.layout.inspectorWidth}
+          minWidth={MIN_PANEL_WIDTH}
+          maxWidth={MAX_PANEL_WIDTH}
+          onWidthChange={(next) =>
+            workspace.setLayout({ ...workspace.layout, inspectorWidth: next })
+          }
+        />
+      </div>
+
       <aside className="editor-panel inspector">
         <h2>Projet</h2>
         <ProjectTree
@@ -166,7 +201,9 @@ export function App() {
           <strong>B</strong> stamp · <strong>E</strong> eraser · <strong>double-clic</strong>{' '}
           renommer · <strong>glisser</strong> déplacer
         </p>
-        <p style={{ color: '#555', marginTop: 8 }}>Pas encore de sauvegarde — ferme = perdu.</p>
+        <p style={{ color: '#555', marginTop: 8 }}>
+          Pas encore de sauvegarde projet — ferme = perdu.
+        </p>
       </aside>
 
       <NewMapDialog

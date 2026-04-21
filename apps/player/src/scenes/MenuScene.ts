@@ -1,6 +1,6 @@
 import * as Phaser from 'phaser';
 
-const APP_VERSION = '0.2.2';
+const APP_VERSION = '0.2.3';
 
 export class MenuScene extends Phaser.Scene {
   private blinkTween?: Phaser.Tweens.Tween;

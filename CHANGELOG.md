@@ -4,6 +4,19 @@ Toutes les modifications notables de SRB sont listées ici.
 
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et le projet suit [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.2.3] — 2026-04-21 — Éditeur : panneaux resizables + workspaces
+
+### Added
+
+- **Panneaux redimensionnables** : glisse les séparateurs verticaux pour ajuster la largeur de la palette (gauche) et du panneau projet (droite). Canvas prend le reste. Min 160px, max 500px.
+- **Persistance localStorage** : le layout courant est sauvegardé automatiquement à chaque changement. Tu le retrouves au prochain refresh.
+- **Workspaces nommés** : menu `Workspace ▾` dans le header pour :
+  - Sauver la config actuelle sous un nom ("Édition", "Preview", ...)
+  - Basculer entre plusieurs presets
+  - Supprimer un preset
+  - Reset au layout par défaut
+- Bouton ⇡ (v0.2.2 patch) pour détacher un item à la racine + drop sur la toolbar avec feedback visuel
+
 ## [0.2.2] — 2026-04-21 — Éditeur : project + tree + map edit
 
 Début de l'éditeur de maps (`apps/editor`) jouable en parallèle du player.

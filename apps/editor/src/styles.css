@@ -24,12 +24,39 @@ body {
 
 .editor-root {
   display: grid;
-  grid-template-columns: 220px 1fr 240px;
+  /* grid-template-columns is set from JS (resizable). Default set here as fallback. */
+  grid-template-columns: 220px 4px 1fr 4px 240px;
   grid-template-rows: 40px 1fr;
   grid-template-areas:
-    'header header header'
-    'palette canvas inspector';
+    'header header header header header'
+    'palette gutter-l canvas gutter-r inspector';
   height: 100%;
+}
+
+.resize-gutter {
+  background: #141414;
+  position: relative;
+}
+
+.resize-gutter-left {
+  grid-area: gutter-l;
+}
+
+.resize-gutter-right {
+  grid-area: gutter-r;
+}
+
+.resize-handle {
+  position: absolute;
+  inset: 0;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.1s;
+}
+
+.resize-handle:hover,
+.resize-handle:active {
+  background: #ff6b6b;
 }
 
 .editor-header {
@@ -453,4 +480,104 @@ body {
 
 .modal-actions button:hover {
   filter: brightness(1.15);
+}
+
+/* Workspace menu */
+.workspace-menu {
+  position: relative;
+}
+
+.workspace-toggle {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: monospace;
+  cursor: pointer;
+}
+
+.workspace-toggle:hover {
+  background: #262626;
+}
+
+.workspace-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+}
+
+.workspace-popup {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 220px;
+  background: #141414;
+  border: 1px solid #333;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  z-index: 950;
+  padding: 4px;
+}
+
+.workspace-divider {
+  height: 1px;
+  background: #2a2a2a;
+  margin: 4px 0;
+}
+
+.workspace-empty {
+  padding: 8px 10px;
+  font-size: 11px;
+  color: #555;
+  font-family: monospace;
+  text-align: center;
+}
+
+.workspace-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.workspace-row .workspace-item {
+  flex: 1;
+}
+
+.workspace-item {
+  display: block;
+  width: 100%;
+  background: transparent;
+  color: #e0e0e0;
+  border: none;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: monospace;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.workspace-item:hover {
+  background: #1e1e1e;
+}
+
+.workspace-item.primary {
+  color: #ff6b6b;
+}
+
+.workspace-delete {
+  background: transparent;
+  color: #555;
+  border: none;
+  font-size: 11px;
+  padding: 4px 6px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.workspace-delete:hover {
+  color: #ff6b6b;
+  background: #1e1e1e;
 }
