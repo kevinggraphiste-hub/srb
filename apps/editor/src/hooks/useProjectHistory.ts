@@ -29,6 +29,8 @@ interface UseProjectHistoryResult {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  pastSize: number;
+  futureSize: number;
   /** Replaces history with a fresh project. Used for load/new project. */
   replaceAll: (next: Project) => void;
 }
@@ -117,6 +119,8 @@ export function useProjectHistory(initial: () => Project): UseProjectHistoryResu
     redo,
     canUndo: state.past.length > 0,
     canRedo: state.future.length > 0,
+    pastSize: state.past.length,
+    futureSize: state.future.length,
     replaceAll,
   };
 }

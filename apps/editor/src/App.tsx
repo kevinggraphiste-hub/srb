@@ -222,10 +222,16 @@ export function App() {
         return;
       }
     };
-    // Capture phase so Ctrl+Z fires before any bubble-phase listener that
-    // might preventDefault or swallow it.
-    window.addEventListener('keydown', onKey, { capture: true });
-    return () => window.removeEventListener('keydown', onKey, { capture: true } as AddEventListenerOptions);
+    // Register on BOTH window and document in capture phase. Some embedded
+    // libs (Phaser/Dockview) may attach to one target but not the other;
+    // capture phase ensures we run before any bubble-phase handler.
+    const opts: AddEventListenerOptions = { capture: true };
+    window.addEventListener('keydown', onKey, opts);
+    document.addEventListener('keydown', onKey, opts);
+    return () => {
+      window.removeEventListener('keydown', onKey, opts);
+      document.removeEventListener('keydown', onKey, opts);
+    };
   }, []);
 
   const editorContext: EditorContextValue = {
@@ -269,7 +275,7 @@ export function App() {
               disabled={!history.canUndo}
               title="Annuler (Ctrl+Z)"
             >
-              ↶ Undo
+              ↶ Undo ({history.pastSize})
             </button>
             <button
               type="button"
@@ -277,7 +283,7 @@ export function App() {
               disabled={!history.canRedo}
               title="Refaire (Ctrl+Shift+Z)"
             >
-              ↷ Redo
+              ↷ Redo ({history.futureSize})
             </button>
             <ProjectMenu
               projectName={project.name}

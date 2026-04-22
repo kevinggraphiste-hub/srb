@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as Phaser from 'phaser';
-import type { GameMap } from '@srb/types';
+import type { GameMap, TileGrid } from '@srb/types';
 import {
   EditorScene,
   EDITOR_DATA_REGISTRY_KEY,
@@ -69,9 +69,16 @@ export function MapCanvas({
   const strokeRef = useRef<{
     startX: number;
     startY: number;
+    lastX: number;
+    lastY: number;
     mapAtStart: GameMap;
     mode: 'stamp' | 'eraser' | 'rect' | 'fill';
   } | null>(null);
+
+  // Shared stroke-end logic. Called from Phaser's pointerup AND from a
+  // document-level mouseup fallback, so releasing the mouse outside the
+  // canvas still closes the rectangle and commits history.
+  const finishStrokeRef = useRef<(tileX: number, tileY: number) => void>(() => undefined);
 
   // Tracks whether Shift is held down. Used to promote stamp/eraser drags
   // into rectangle paints without the user switching tool.
@@ -88,6 +95,50 @@ export function MapCanvas({
     return () => {
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
+    };
+  }, []);
+
+  // Build the finisher once and keep it in the ref so both Phaser and the
+  // document mouseup fallback call the exact same closure.
+  useEffect(() => {
+    finishStrokeRef.current = (tileX: number, tileY: number): void => {
+      const cur = latestRef.current;
+      const stroke = strokeRef.current;
+      if (!stroke) return;
+      strokeRef.current = null;
+      sceneRef.current?.setPreviewRect(null);
+
+      if (stroke.mode === 'rect') {
+        const tileIdToPaint = cur.activeTool === 'eraser' ? -1 : cur.selectedTileId;
+        const finalMap = applyRect(
+          stroke.mapAtStart,
+          cur.activeLayer,
+          tileIdToPaint,
+          stroke.startX,
+          stroke.startY,
+          tileX,
+          tileY,
+        );
+        if (finalMap !== cur.map) cur.onMapChange(finalMap);
+      }
+      cur.onStrokeEnd();
+    };
+  }, []);
+
+  // Fallback: mouse released anywhere in the document. Phaser's pointerup
+  // only fires inside the canvas, so dragging off-canvas leaves the stroke
+  // dangling and the preview rect visible. This closes it.
+  useEffect(() => {
+    const onUp = (): void => {
+      const stroke = strokeRef.current;
+      if (!stroke) return;
+      finishStrokeRef.current(stroke.lastX, stroke.lastY);
+    };
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('pointerup', onUp);
+    return () => {
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('pointerup', onUp);
     };
   }, []);
 
@@ -123,7 +174,14 @@ export function MapCanvas({
             const mode: 'stamp' | 'eraser' | 'rect' | 'fill' = promoteToRect
               ? 'rect'
               : cur.activeTool;
-            strokeRef.current = { startX: tileX, startY: tileY, mapAtStart: cur.map, mode };
+            strokeRef.current = {
+              startX: tileX,
+              startY: tileY,
+              lastX: tileX,
+              lastY: tileY,
+              mapAtStart: cur.map,
+              mode,
+            };
 
             if (mode === 'rect') {
               sceneRef.current?.setPreviewRect({ x0: tileX, y0: tileY, x1: tileX, y1: tileY });
@@ -149,6 +207,8 @@ export function MapCanvas({
             const cur = latestRef.current;
             const stroke = strokeRef.current;
             if (!stroke) return;
+            stroke.lastX = tileX;
+            stroke.lastY = tileY;
 
             if (stroke.mode === 'rect') {
               sceneRef.current?.setPreviewRect({
@@ -165,28 +225,7 @@ export function MapCanvas({
             if (painted !== cur.map) cur.onMapChange(painted);
           },
           onPointerUp: (tileX: number, tileY: number) => {
-            const cur = latestRef.current;
-            const stroke = strokeRef.current;
-            strokeRef.current = null;
-            sceneRef.current?.setPreviewRect(null);
-
-            if (!stroke) return;
-            if (stroke.mode === 'rect') {
-              // Eraser-promoted-to-rect uses -1; normal rect uses the selection.
-              const tileIdToPaint =
-                cur.activeTool === 'eraser' ? -1 : cur.selectedTileId;
-              const finalMap = applyRect(
-                stroke.mapAtStart,
-                cur.activeLayer,
-                tileIdToPaint,
-                stroke.startX,
-                stroke.startY,
-                tileX,
-                tileY,
-              );
-              if (finalMap !== cur.map) cur.onMapChange(finalMap);
-            }
-            cur.onStrokeEnd();
+            finishStrokeRef.current(tileX, tileY);
           },
         },
       });
@@ -227,6 +266,19 @@ function toolToHover(tool: Tool): HoverStyle {
   return tool;
 }
 
+/**
+ * Creates an empty layer grid if the map has none. Existing projects saved
+ * before background/overlay were added may not have those fields — this lets
+ * the user start painting on them without a migration step.
+ */
+function ensureLayer(map: GameMap, layer: Exclude<EditableLayer, 'collision'>): GameMap {
+  if (map.layers[layer]) return map;
+  const grid: TileGrid = Array.from({ length: map.height }, () =>
+    Array.from({ length: map.width }, () => -1),
+  );
+  return { ...map, layers: { ...map.layers, [layer]: grid } };
+}
+
 function applyTile(
   map: GameMap,
   layer: EditableLayer,
@@ -235,23 +287,22 @@ function applyTile(
   tileY: number,
 ): GameMap {
   if (layer === 'collision') {
-    // In collision mode, "paint" = blocking, "erase" (tileId = -1) = clear.
     const blocking = tileId !== -1;
     return setCollision(map, tileX, tileY, blocking);
   }
-  const currentLayer = map.layers[layer];
-  if (!currentLayer) return map;
+  const ensured = ensureLayer(map, layer);
+  const currentLayer = ensured.layers[layer]!;
   const currentRow = currentLayer[tileY];
-  if (!currentRow) return map;
-  if (currentRow[tileX] === tileId) return map;
+  if (!currentRow) return ensured;
+  if (currentRow[tileX] === tileId) return ensured;
 
   const nextRow = [...currentRow];
   nextRow[tileX] = tileId;
   const nextLayerGrid = currentLayer.map((r, i) => (i === tileY ? nextRow : r));
 
   return {
-    ...map,
-    layers: { ...map.layers, [layer]: nextLayerGrid },
+    ...ensured,
+    layers: { ...ensured.layers, [layer]: nextLayerGrid },
   };
 }
 
@@ -292,15 +343,15 @@ function applyRect(
     return { ...map, collision: nextCollision };
   }
 
-  const currentLayer = map.layers[layer];
-  if (!currentLayer) return map;
+  const ensured = ensureLayer(map, layer);
+  const currentLayer = ensured.layers[layer]!;
   const nextGrid = currentLayer.map((row, y) => {
     if (y < minY || y > maxY) return row;
     const nextRow = [...row];
     for (let x = minX; x <= maxX; x++) nextRow[x] = tileId;
     return nextRow;
   });
-  return { ...map, layers: { ...map.layers, [layer]: nextGrid } };
+  return { ...ensured, layers: { ...ensured.layers, [layer]: nextGrid } };
 }
 
 function applyFloodFill(
@@ -320,14 +371,14 @@ function applyFloodFill(
     return { ...map, collision: next };
   }
 
-  const currentLayer = map.layers[layer];
-  if (!currentLayer) return map;
+  const ensured = ensureLayer(map, layer);
+  const currentLayer = ensured.layers[layer]!;
   const target = currentLayer[startY]?.[startX];
-  if (target === undefined) return map;
-  if (target === tileId) return map;
+  if (target === undefined) return ensured;
+  if (target === tileId) return ensured;
   const next = currentLayer.map((r) => [...r]);
-  flood(next, startX, startY, target, tileId, map.width, map.height);
-  return { ...map, layers: { ...map.layers, [layer]: next } };
+  flood(next, startX, startY, target, tileId, ensured.width, ensured.height);
+  return { ...ensured, layers: { ...ensured.layers, [layer]: next } };
 }
 
 function flood<T>(
