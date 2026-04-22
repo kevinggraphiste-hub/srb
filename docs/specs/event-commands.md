@@ -3,7 +3,7 @@
 Format des événements (`MapEvent`) et catalogue des commandes (`EventCommand`)
 exécutées par le runtime quand une page d'event se déclenche.
 
-Version : **1.0.0-draft** (vit pendant toute la Phase 3 ; figée à la fin de P3)
+Version : **1.1.0-draft** (vit pendant toute la Phase 3 ; figée à la fin de P3)
 
 ---
 
@@ -97,14 +97,21 @@ Statuts :
 
 | Cmd         | Statut | Forme                                                   |
 | ----------- | ------ | ------------------------------------------------------- |
-| show_text   | ✅     | `{ type: 'show_text'; text: string }`                   |
+| show_text   | ✅     | `{ type: 'show_text'; text: string; speaker?: string }` (speaker ajouté en v0.5) |
 | transfer    | ✅     | `{ type: 'transfer'; mapId: string; x: number; y: number }` |
 | script      | ✅     | `{ type: 'script'; code: string }` (mode expert)        |
 | placeholder | ✅     | `{ type: 'placeholder' }` (slot vide pour l'éditeur)    |
 
+**Livrées en v0.5.x :**
+
+| Cmd          | Statut | Forme                                                                                                                                 |
+| ------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| show_choices | ✅     | `{ type: 'show_choices'; prompt: string; choices: Array<{ label: string; branch: EventCommand[] }>; defaultIndex?: number; cancelIndex?: number }` |
+
 **Sémantique actuelle :**
 
-- `show_text` : ouvre une DialogBox, bloque l'EventRunner jusqu'à la touche d'action.
+- `show_text` : ouvre une DialogBox, bloque l'EventRunner jusqu'à la touche d'action. Si `speaker` est fourni, un bandeau avec le nom est rendu au-dessus de la boîte.
+- `show_choices` : ouvre la DialogBox en mode choix : `prompt` en haut, liste verticale de `choices`. Le joueur navigue avec ↑ ↓, confirme avec Espace, annule avec Échap (fallback sur `cancelIndex` si défini, sinon l'Escape est ignoré). La `branch` du choix retenu est **unshifted** dans la queue — elle s'exécute avant les commandes qui suivent le `show_choices`.
 - `transfer` : restart de PlayScene sur la map cible avec le spawn fourni.
 - `script` : `new Function('ctx', code)(ctx)`. Sandbox réelle en Phase 8.
 - `placeholder` : no-op, laissé dans la liste comme emplacement éditeur.
@@ -116,11 +123,11 @@ Regroupées par sous-système. Chaque ligne devient un type à ajouter à l'unio
 
 #### Dialogue & choix
 
-| Cmd              | Forme                                                                                     |
-| ---------------- | ----------------------------------------------------------------------------------------- |
-| show_text (v2)   | ajouter `speaker?: string`, `face?: { spriteId: string; frame: number }`                  |
-| show_choices     | `{ type: 'show_choices'; prompt: string; choices: Array<{ label: string; branch: EventCommand[] }>; defaultIndex?: number; cancelIndex?: number }` |
-| input_number     | `{ type: 'input_number'; variableId: string; digits: number }`                            |
+| Cmd              | Statut | Forme                                                                                     |
+| ---------------- | ------ | ----------------------------------------------------------------------------------------- |
+| show_text (v2)   | partiel (speaker ✅ v0.5 · face 🛠 v0.8) | `speaker?: string`, plus tard `face?: { spriteId: string; frame: number }` |
+| show_choices     | ✅ v0.5 | `{ type: 'show_choices'; prompt: string; choices: Array<{ label: string; branch: EventCommand[] }>; defaultIndex?: number; cancelIndex?: number }` |
+| input_number     | 🛠 | `{ type: 'input_number'; variableId: string; digits: number }`                            |
 
 #### Contrôle de flow
 

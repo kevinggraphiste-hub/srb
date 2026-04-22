@@ -96,7 +96,9 @@ export function createEventFromTemplate(
 }
 
 function npcPage(): EventPage {
-  const commands: EventCommand[] = [{ type: 'show_text', text: 'Bonjour, voyageur !' }];
+  const commands: EventCommand[] = [
+    { type: 'show_text', speaker: 'Villageois', text: 'Bonjour, voyageur !' },
+  ];
   return {
     conditions: [],
     trigger: 'action',

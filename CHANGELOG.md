@@ -4,6 +4,42 @@ Toutes les modifications notables de SRB sont listées ici.
 
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et le projet suit [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.5.0] — 2026-04-23 — Phase 3 step 2 : dialogue polish + choix multiples
+
+Second palier de Phase 3. Les dialogues savent maintenant qui parle et
+on peut poser des questions au joueur avec plusieurs réponses possibles
+— chacune menant à sa propre séquence d'actions.
+
+### Added
+
+- **`show_text` enrichi** avec un nom de locuteur optionnel :
+  - Au runtime : petit bandeau au-dessus de la boîte de dialogue avec
+    le nom en accent rouge SRB.
+  - Dans l'éditeur : champ « Nom du locuteur » (optionnel) sous le
+    texte. Preview inline du format `Elara — Salut !`.
+  - Template PNJ utilise désormais `speaker: "Villageois"` par défaut.
+- **Nouvelle commande `show_choices`** (libellé FR « Poser une question
+  (choix) ») :
+  - Prompt en haut + liste verticale de choix avec curseur ▶.
+  - Navigation ↑ / ↓, confirmation Espace, annulation Échap (si un
+    `cancelIndex` est défini en mode avancé).
+  - Chaque choix a sa propre liste d'actions (**branche**) éditable
+    récursivement — on peut imbriquer un `show_choices` dans une
+    branche si besoin.
+  - Quand le joueur sélectionne un choix, les commandes de la branche
+    sont exécutées **avant** celles qui suivent le `show_choices`.
+- **DialogBox relookée** : double bordure (outer rouge sombre, inner
+  accent SRB), fond plus opaque, hint contextuel (`▼ Space` pour un
+  dialogue, `↑↓ · Space · Esc` pour un choix).
+
+### Changed
+
+- Spec `docs/specs/event-commands.md` passe en draft **1.1.0** : marque
+  `show_text.speaker` et `show_choices` comme livrés, précise la
+  sémantique de branche (unshift dans la queue).
+- InputProvider expose `justPressedUp` / `justPressedDown` /
+  `justPressedCancel` (utilisés par le mode choix).
+
 ## [0.4.2] — 2026-04-22 — Events accessibles : templates, mode simple, vocabulaire FR
 
 L'éditeur d'events passe de « RPG Maker nu » à quelque chose d'utilisable

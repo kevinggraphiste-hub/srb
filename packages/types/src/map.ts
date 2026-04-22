@@ -69,11 +69,25 @@ export interface EventPage {
 }
 
 /**
- * Event command placeholder. Will be expanded in Phase 3 to cover the full
- * RPG-Maker-style command set (show_text, choice, transfer, conditional, etc.).
+ * Event commands executed by the runtime's EventRunner. See
+ * docs/specs/event-commands.md for the living catalogue and the P3 roadmap.
  */
+export interface ShowChoicesChoice {
+  label: string;
+  branch: EventCommand[];
+}
+
 export type EventCommand =
-  | { type: 'show_text'; text: string }
+  | { type: 'show_text'; text: string; speaker?: string }
+  | {
+      type: 'show_choices';
+      prompt: string;
+      choices: ShowChoicesChoice[];
+      /** Index pre-selected when the choice box opens. Defaults to 0. */
+      defaultIndex?: number;
+      /** Index picked when the player cancels (Escape). Omit = cancel disabled. */
+      cancelIndex?: number;
+    }
   | { type: 'transfer'; mapId: string; x: number; y: number }
   | { type: 'script'; code: string }
   | { type: 'placeholder' };

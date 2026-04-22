@@ -27,10 +27,13 @@ export class InputProvider {
   };
   private touchActionPending = false;
 
+  private cancelKey?: Phaser.Input.Keyboard.Key;
+
   constructor(scene: Phaser.Scene) {
     if (scene.input.keyboard) {
       this.cursors = scene.input.keyboard.createCursorKeys();
       this.actionKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+      this.cancelKey = scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     }
     if (InputProvider.isTouchDevice()) {
       this.setupTouchDpad(scene);
@@ -65,6 +68,21 @@ export class InputProvider {
       return true;
     }
     return false;
+  }
+
+  /** True for a single frame when Escape was just pressed. Keyboard only. */
+  justPressedCancel(): boolean {
+    return this.cancelKey ? Phaser.Input.Keyboard.JustDown(this.cancelKey) : false;
+  }
+
+  /** True for a single frame when Up was just pressed. Used for menu nav. */
+  justPressedUp(): boolean {
+    return this.cursors?.up ? Phaser.Input.Keyboard.JustDown(this.cursors.up) : false;
+  }
+
+  /** True for a single frame when Down was just pressed. Used for menu nav. */
+  justPressedDown(): boolean {
+    return this.cursors?.down ? Phaser.Input.Keyboard.JustDown(this.cursors.down) : false;
   }
 
   private setupTouchDpad(scene: Phaser.Scene): void {

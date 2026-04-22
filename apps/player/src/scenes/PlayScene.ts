@@ -1,5 +1,11 @@
 import * as Phaser from 'phaser';
-import type { CharacterSheet, CollisionGrid, EventCommand, GameMap } from '@srb/types';
+import type {
+  CharacterSheet,
+  CollisionGrid,
+  EventCommand,
+  GameMap,
+  ShowChoicesChoice,
+} from '@srb/types';
 import { renderMapBase, renderMapOverlay, TILE_SIZE } from '../rendering/MapRenderer';
 import { isFeetBlocked } from '../systems/collision';
 import { findEventAt, getActivePage } from '../systems/EventRunner';
@@ -37,6 +43,8 @@ export class PlayScene extends Phaser.Scene {
 
   /** Queue of commands waiting to run (while show_text is blocking). */
   private pendingCommands: EventCommand[] = [];
+  /** Active choice list when the dialog is in choices mode. null otherwise. */
+  private pendingChoices: ShowChoicesChoice[] | null = null;
 
   constructor() {
     super({ key: 'PlayScene' });
@@ -50,6 +58,7 @@ export class PlayScene extends Phaser.Scene {
     this.spawnTileY = data.spawnTileY;
     this.transferring = false;
     this.pendingCommands = [];
+    this.pendingChoices = null;
   }
 
   create(): void {
@@ -106,11 +115,24 @@ export class PlayScene extends Phaser.Scene {
   override update(_time: number, delta: number): void {
     if (this.transferring) return;
 
-    // If a dialog is open, Space advances. No movement meanwhile.
-    if (this.dialogBox.isOpen()) {
+    // If a dialog is open, Space advances (text mode) or confirms (choices).
+    // No movement meanwhile.
+    const dialogMode = this.dialogBox.getMode();
+    if (dialogMode === 'text') {
       if (this.input2.justPressedAction()) {
         this.dialogBox.close();
         this.runNextPendingCommand();
+      }
+      return;
+    }
+    if (dialogMode === 'choices') {
+      if (this.input2.justPressedUp()) this.dialogBox.moveCursor(-1);
+      if (this.input2.justPressedDown()) this.dialogBox.moveCursor(1);
+      if (this.input2.justPressedAction()) {
+        this.resolveChoice(this.dialogBox.getSelectedIndex());
+      } else if (this.input2.justPressedCancel()) {
+        const ci = this.dialogBox.getCancelIndex();
+        if (ci !== null) this.resolveChoice(ci);
       }
       return;
     }
@@ -121,6 +143,22 @@ export class PlayScene extends Phaser.Scene {
     }
 
     this.updateMovement(delta);
+  }
+
+  private resolveChoice(index: number): void {
+    const choices = this.pendingChoices;
+    if (!choices) {
+      this.dialogBox.close();
+      this.runNextPendingCommand();
+      return;
+    }
+    const picked = choices[index];
+    this.dialogBox.close();
+    this.pendingChoices = null;
+    if (picked) {
+      this.pendingCommands = [...picked.branch, ...this.pendingCommands];
+    }
+    this.runNextPendingCommand();
   }
 
   private updateMovement(delta: number): void {
@@ -262,8 +300,17 @@ export class PlayScene extends Phaser.Scene {
           this.pendingCommands = [];
           return;
         case 'show_text':
-          this.dialogBox.open(cmd.text);
+          this.dialogBox.openText({ text: cmd.text, speaker: cmd.speaker });
           return; // wait until dialog is closed by the player
+        case 'show_choices':
+          this.pendingChoices = cmd.choices;
+          this.dialogBox.openChoices({
+            prompt: cmd.prompt,
+            choices: cmd.choices.map((c) => ({ label: c.label })),
+            defaultIndex: cmd.defaultIndex,
+            cancelIndex: cmd.cancelIndex,
+          });
+          return;
         case 'script':
           console.warn('[event:script] not yet implemented');
           break;
