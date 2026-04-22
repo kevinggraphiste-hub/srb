@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { SerializedDockview } from 'dockview-react';
 import type { GameMap, Project } from '@srb/types';
-import { Palette } from './components/Palette';
-import { LayerSelect, type EditableLayer } from './components/LayerSelect';
-import { ToolSelect, type Tool } from './components/ToolSelect';
-import { MapCanvas } from './components/MapCanvas';
-import { ProjectTree } from './components/ProjectTree';
+import { DockLayout } from './components/DockLayout';
 import { NewMapDialog } from './components/NewMapDialog';
 import { ResizeMapDialog } from './components/ResizeMapDialog';
-import { ResizeHandle } from './components/ResizeHandle';
 import { WorkspaceMenu } from './components/WorkspaceMenu';
-import { MAX_PANEL_WIDTH, MIN_PANEL_WIDTH, useWorkspace } from './hooks/useWorkspace';
+import { EditorProvider, type EditorContextValue } from './context/EditorContext';
+import { useWorkspace } from './hooks/useWorkspace';
+import type { EditableLayer } from './components/LayerSelect';
+import type { Tool } from './components/ToolSelect';
 import { createBlankMap } from './data/blank-map';
 import {
   addFolderToProject,
@@ -24,7 +23,7 @@ import {
   setActiveMapId,
 } from './data/project';
 
-const APP_VERSION = '0.2.3';
+const APP_VERSION = '0.2.4';
 
 export function App() {
   const [project, setProject] = useState<Project>(() => createBlankProject());
@@ -37,6 +36,7 @@ export function App() {
   const [settingsMapId, setSettingsMapId] = useState<string | null>(null);
 
   const workspace = useWorkspace();
+  const [layoutToApply, setLayoutToApply] = useState<SerializedDockview | 'default' | null>(null);
 
   const activeMap: GameMap | null = getActiveMap(project);
 
@@ -113,113 +113,82 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const gridTemplateColumns = `${workspace.layout.paletteWidth}px 4px 1fr 4px ${workspace.layout.inspectorWidth}px`;
+  const editorContext: EditorContextValue = {
+    project,
+    activeMap,
+    selectedTileId,
+    setSelectedTileId,
+    activeLayer,
+    setActiveLayer,
+    activeTool,
+    setActiveTool,
+    onMapChange: handleMapChange,
+    onSelectMap: handleSelectMap,
+    onNewMap: openNewMapDialog,
+    onNewFolder: handleNewFolder,
+    onRename: handleRename,
+    onDelete: handleDelete,
+    onMove: handleMove,
+    onOpenMapSettings: setSettingsMapId,
+  };
 
   return (
-    <div className="editor-root" style={{ gridTemplateColumns }}>
-      <header className="editor-header">
-        <h1>SRB Editor</h1>
-        <span className="subtitle">
-          v{APP_VERSION} · {project.name}
-          {activeMap ? ` · ${activeMap.name} (${activeMap.width}×${activeMap.height})` : ''}
-        </span>
-        <div className="header-actions">
-          <WorkspaceMenu
-            presets={workspace.presets}
-            onSaveAs={workspace.saveAsPreset}
-            onApply={workspace.applyPreset}
-            onDelete={workspace.deletePreset}
-            onReset={workspace.resetToDefault}
-          />
-          <button type="button" onClick={() => openNewMapDialog(undefined)}>
-            + Nouvelle map
-          </button>
-        </div>
-      </header>
-
-      <aside className="editor-panel palette">
-        <h2>Outils</h2>
-        <ToolSelect active={activeTool} onChange={setActiveTool} />
-        <h2>Tiles</h2>
-        <Palette selectedTileId={selectedTileId} onSelect={setSelectedTileId} />
-        <LayerSelect active={activeLayer} onChange={setActiveLayer} />
-      </aside>
-
-      <div className="resize-gutter resize-gutter-left">
-        <ResizeHandle
-          side="left"
-          width={workspace.layout.paletteWidth}
-          minWidth={MIN_PANEL_WIDTH}
-          maxWidth={MAX_PANEL_WIDTH}
-          onWidthChange={(next) => workspace.setLayout({ ...workspace.layout, paletteWidth: next })}
-        />
-      </div>
-
-      <main className="map-canvas-wrapper">
-        {activeMap ? (
-          <MapCanvas
-            key={activeMap.id}
-            map={activeMap}
-            activeLayer={activeLayer}
-            selectedTileId={selectedTileId}
-            activeTool={activeTool}
-            onMapChange={handleMapChange}
-          />
-        ) : (
-          <div className="empty-state">
-            Aucune map sélectionnée. Crée-en une depuis l&apos;arbre.
+    <EditorProvider value={editorContext}>
+      <div className="editor-root">
+        <header className="editor-header">
+          <h1>SRB Editor</h1>
+          <span className="subtitle">
+            v{APP_VERSION} · {project.name}
+            {activeMap ? ` · ${activeMap.name} (${activeMap.width}×${activeMap.height})` : ''}
+          </span>
+          <div className="header-actions">
+            <WorkspaceMenu
+              presets={workspace.presets}
+              hasCustomDefault={workspace.defaultLayout !== null}
+              onSaveAs={workspace.saveAsPreset}
+              onApply={(id) => {
+                const layout = workspace.applyPreset(id);
+                if (layout) setLayoutToApply(layout);
+              }}
+              onDelete={workspace.deletePreset}
+              onSetCurrentAsDefault={workspace.setCurrentAsDefault}
+              onClearDefault={workspace.clearDefault}
+              onReset={() => {
+                workspace.resetToDefault();
+                setLayoutToApply('default');
+              }}
+            />
+            <button type="button" onClick={() => openNewMapDialog(undefined)}>
+              + Nouvelle map
+            </button>
           </div>
-        )}
-      </main>
+        </header>
 
-      <div className="resize-gutter resize-gutter-right">
-        <ResizeHandle
-          side="right"
-          width={workspace.layout.inspectorWidth}
-          minWidth={MIN_PANEL_WIDTH}
-          maxWidth={MAX_PANEL_WIDTH}
-          onWidthChange={(next) =>
-            workspace.setLayout({ ...workspace.layout, inspectorWidth: next })
-          }
+        <main className="editor-main">
+          <DockLayout
+            initialLayout={workspace.currentLayout}
+            defaultLayout={workspace.defaultLayout}
+            onLayoutChange={workspace.onLayoutChange}
+            layoutToApply={layoutToApply}
+            onLayoutApplied={() => setLayoutToApply(null)}
+          />
+        </main>
+
+        <NewMapDialog
+          open={newMapDialogOpen}
+          onClose={() => setNewMapDialogOpen(false)}
+          onCreate={handleNewMap}
+        />
+
+        <ResizeMapDialog
+          open={settingsMapId !== null && settingsMapData !== null}
+          currentName={settingsMapData?.name ?? ''}
+          currentWidth={settingsMapData?.width ?? 20}
+          currentHeight={settingsMapData?.height ?? 15}
+          onClose={() => setSettingsMapId(null)}
+          onApply={handleApplyMapSettings}
         />
       </div>
-
-      <aside className="editor-panel inspector">
-        <h2>Projet</h2>
-        <ProjectTree
-          project={project}
-          onSelectMap={handleSelectMap}
-          onNewMap={openNewMapDialog}
-          onNewFolder={handleNewFolder}
-          onRename={handleRename}
-          onDelete={handleDelete}
-          onMove={handleMove}
-          onOpenMapSettings={setSettingsMapId}
-        />
-        <h2 style={{ marginTop: 16 }}>Aide</h2>
-        <p>
-          <strong>B</strong> stamp · <strong>E</strong> eraser · <strong>double-clic</strong>{' '}
-          renommer · <strong>glisser</strong> déplacer
-        </p>
-        <p style={{ color: '#555', marginTop: 8 }}>
-          Pas encore de sauvegarde projet — ferme = perdu.
-        </p>
-      </aside>
-
-      <NewMapDialog
-        open={newMapDialogOpen}
-        onClose={() => setNewMapDialogOpen(false)}
-        onCreate={handleNewMap}
-      />
-
-      <ResizeMapDialog
-        open={settingsMapId !== null && settingsMapData !== null}
-        currentName={settingsMapData?.name ?? ''}
-        currentWidth={settingsMapData?.width ?? 20}
-        currentHeight={settingsMapData?.height ?? 15}
-        onClose={() => setSettingsMapId(null)}
-        onApply={handleApplyMapSettings}
-      />
-    </div>
+    </EditorProvider>
   );
 }

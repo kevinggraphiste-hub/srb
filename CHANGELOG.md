@@ -4,6 +4,27 @@ Toutes les modifications notables de SRB sont listées ici.
 
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et le projet suit [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.2.4] — 2026-04-22 — Éditeur : vrai docking (dockview) + défaut custom
+
+### Changed
+
+- **Migration vers `dockview-react`** pour le layout de l'éditeur. Les panels sont maintenant de vrais onglets :
+  - glisser un onglet pour le **réorganiser**, le **stacker** sur un autre, ou le **détacher** en split vertical/horizontal
+  - chaque groupe peut être **minimisé** / **reposition** à la volée
+  - le layout complet est sérialisé (JSON `SerializedDockview`) et persisté dans localStorage
+- `components/ResizeHandle.tsx` supprimé — remplacé par le splitter natif de dockview
+- State partagé entre panels via `EditorContext` (plus de prop-drilling dans `App.tsx`)
+
+### Added
+
+- Menu `Workspace ▾` : **★ Définir comme défaut** — sauvegarde la config courante comme layout de référence. Le bouton `Reset au layout par défaut` retombe alors sur cette config au lieu du hardcoded.
+- `Restaurer le défaut d'origine` — efface le défaut custom si tu veux revenir au layout du jour 1.
+- Accent visuel rouge SRB sur les onglets actifs / drop zones dockview.
+
+### Migration
+
+- Clé localStorage : `srb-editor:workspace-v1` (anciens sliders) → `srb-editor:workspace-v2` (dockview JSON). Les anciens workspaces sauvegardés sont ignorés (format incompatible).
+
 ## [0.2.3] — 2026-04-21 — Éditeur : panneaux resizables + workspaces
 
 ### Added

@@ -23,40 +23,49 @@ body {
 }
 
 .editor-root {
-  display: grid;
-  /* grid-template-columns is set from JS (resizable). Default set here as fallback. */
-  grid-template-columns: 220px 4px 1fr 4px 240px;
-  grid-template-rows: 40px 1fr;
-  grid-template-areas:
-    'header header header header header'
-    'palette gutter-l canvas gutter-r inspector';
+  display: flex;
+  flex-direction: column;
   height: 100%;
 }
 
-.resize-gutter {
-  background: #141414;
+.editor-main {
+  flex: 1;
+  min-height: 0;
   position: relative;
 }
 
-.resize-gutter-left {
-  grid-area: gutter-l;
+.editor-dock {
+  height: 100%;
+  width: 100%;
 }
 
-.resize-gutter-right {
-  grid-area: gutter-r;
+/* Each dockview panel's content area. Individual widgets inside carry their own padding. */
+.panel-body {
+  height: 100%;
+  overflow: auto;
 }
 
-.resize-handle {
-  position: absolute;
-  inset: 0;
-  cursor: col-resize;
-  background: transparent;
-  transition: background 0.1s;
+.help-panel {
+  padding: 12px;
 }
 
-.resize-handle:hover,
-.resize-handle:active {
-  background: #ff6b6b;
+.help-panel p {
+  font-size: 12px;
+  color: #888;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+/* Override dockview accents to match our red theme */
+.dockview-theme-abyss {
+  --dv-activegroup-visiblepanel-tab-background-color: #2a1e1e;
+  --dv-activegroup-visiblepanel-tab-color: #ff6b6b;
+  --dv-inactivegroup-visiblepanel-tab-color: #ccc;
+  --dv-tab-divider-color: #2a2a2a;
+  --dv-separator-border: #2a2a2a;
+  --dv-paneview-active-outline-color: #ff6b6b;
+  --dv-drag-over-background-color: rgba(255, 107, 107, 0.2);
+  --dv-drag-over-border-color: #ff6b6b;
 }
 
 .editor-header {

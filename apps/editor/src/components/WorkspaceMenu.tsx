@@ -3,9 +3,12 @@ import type { WorkspacePreset } from '../hooks/useWorkspace';
 
 interface WorkspaceMenuProps {
   presets: WorkspacePreset[];
+  hasCustomDefault: boolean;
   onSaveAs: (name: string) => void;
   onApply: (presetId: string) => void;
   onDelete: (presetId: string) => void;
+  onSetCurrentAsDefault: () => void;
+  onClearDefault: () => void;
   onReset: () => void;
 }
 
@@ -15,9 +18,12 @@ interface WorkspaceMenuProps {
  */
 export function WorkspaceMenu({
   presets,
+  hasCustomDefault,
   onSaveAs,
   onApply,
   onDelete,
+  onSetCurrentAsDefault,
+  onClearDefault,
   onReset,
 }: WorkspaceMenuProps) {
   const [open, setOpen] = useState(false);
@@ -59,8 +65,31 @@ export function WorkspaceMenu({
             >
               Reset au layout par défaut
             </button>
-            <button type="button" className="workspace-item primary" onClick={handleSaveAs}>
-              + Sauver la config actuelle
+            <button
+              type="button"
+              className="workspace-item primary"
+              onClick={() => {
+                onSetCurrentAsDefault();
+                setOpen(false);
+              }}
+            >
+              ★ Définir comme défaut
+            </button>
+            {hasCustomDefault && (
+              <button
+                type="button"
+                className="workspace-item"
+                onClick={() => {
+                  if (!window.confirm('Revenir au layout défaut d\'origine ?')) return;
+                  onClearDefault();
+                  setOpen(false);
+                }}
+              >
+                Restaurer le défaut d&apos;origine
+              </button>
+            )}
+            <button type="button" className="workspace-item" onClick={handleSaveAs}>
+              + Sauver comme preset…
             </button>
             <div className="workspace-divider" />
             {presets.length === 0 ? (
