@@ -4,6 +4,49 @@ Toutes les modifications notables de SRB sont listées ici.
 
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et le projet suit [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.4.2] — 2026-04-22 — Events accessibles : templates, mode simple, vocabulaire FR
+
+L'éditeur d'events passe de « RPG Maker nu » à quelque chose d'utilisable
+sans connaître le vocabulaire technique. Runtime inchangé — le modèle de
+données reste celui du draft 1.0.0 de la spec.
+
+### Added
+
+- **Templates d'events** : cliquer sur une tile vide avec l'outil V ouvre
+  une fenêtre de choix avec 5 modèles pré-remplis :
+  - 🧙 PNJ qui parle — page action + un dialogue d'exemple
+  - 📜 Panneau d'info — invisible, texte d'accueil
+  - 🌀 Téléporteur — invisible, déclenché au contact, transfer à configurer
+  - 🚪 Porte / passage — interactif, transfer à configurer
+  - ⬜ Vide — aucun défaut (ancien comportement)
+- **Mode Simple / Avancé** (toggle en haut du panneau, persisté dans
+  localStorage) :
+  - Simple : masque conditions, déplacement, direction/frame de sprite,
+    et la commande script. C'est le défaut.
+  - Avancé : toutes les options RPG-Maker, comme en v0.4.1.
+- **Sélecteurs visuels** :
+  - Direction → boutons ← ↑ ↓ → au lieu d'un dropdown texte
+  - Commande « Téléporter le joueur » → dropdown des maps du projet
+    (plus de mapId à taper à la main)
+- **Preview inline dans la liste d'actions** : la première ligne d'un
+  dialogue, le nom de la map cible d'un transfer, s'affichent dans le
+  header de la commande pour repérer visuellement.
+
+### Changed
+
+- **Vocabulaire FR** du panneau Event. Plus de `trigger` / `page` /
+  `graphic` / `movement` / noms techniques de commande dans l'UI :
+  - « Quand ça se déclenche » (options : « Le joueur interagit »,
+    « Le joueur marche dessus », « Automatique (1 fois) », « En boucle
+    de fond »)
+  - « Variantes » au lieu de « Pages »
+  - « Apparence », « Déplacement (entre interactions) », « Actions (à
+    l'activation) »
+  - « Dire un texte », « Téléporter le joueur », « Code (expert) »,
+    « Slot vide » pour les 4 commandes runtime actuelles.
+- Aide du panneau Event précise maintenant le comportement du picker de
+  templates.
+
 ## [0.4.1] — 2026-04-22 — Fixes UX panneau Event + raccourcis
 
 ### Fixed

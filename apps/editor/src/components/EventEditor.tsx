@@ -1,43 +1,109 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
-  EventCommand,
   EventCondition,
   EventPage,
   EventTrigger,
+  GameMap,
   MapEvent,
   MovementPattern,
+  Project,
 } from '@srb/types';
 import { createBlankEventPage } from '../data/events';
 import { EventCommandList } from './EventCommandList';
 
+export type EventEditorMode = 'simple' | 'advanced';
+
+const MODE_STORAGE_KEY = 'srb-editor:event-panel-mode';
+
+export function useEventEditorMode(): [EventEditorMode, (next: EventEditorMode) => void] {
+  const [mode, setMode] = useState<EventEditorMode>(() => {
+    if (typeof window === 'undefined') return 'simple';
+    const raw = window.localStorage.getItem(MODE_STORAGE_KEY);
+    return raw === 'advanced' ? 'advanced' : 'simple';
+  });
+  useEffect(() => {
+    window.localStorage.setItem(MODE_STORAGE_KEY, mode);
+  }, [mode]);
+  return [mode, setMode];
+}
+
 interface EventEditorProps {
   event: MapEvent;
+  project: Project;
+  mode: EventEditorMode;
+  onModeChange: (next: EventEditorMode) => void;
   onChange: (next: MapEvent) => void;
   onDelete: (id: string) => void;
   onClose: () => void;
 }
 
-const TRIGGERS: EventTrigger[] = ['action', 'contact', 'auto', 'parallel'];
-const MOVEMENTS: Array<MovementPattern['type']> = ['fixed', 'random', 'approach', 'custom'];
-const DIRECTIONS: Array<'up' | 'down' | 'left' | 'right'> = ['up', 'down', 'left', 'right'];
+interface TriggerOption {
+  value: EventTrigger;
+  label: string;
+  hint: string;
+}
 
-export function EventEditor({ event, onChange, onDelete, onClose }: EventEditorProps) {
+const TRIGGER_OPTIONS: TriggerOption[] = [
+  { value: 'action', label: 'Le joueur interagit', hint: 'Touche action face à l’event' },
+  { value: 'contact', label: 'Le joueur marche dessus', hint: 'Déclenché au contact' },
+  { value: 'auto', label: 'Automatique (1 fois)', hint: 'Dès que la variante s’active' },
+  { value: 'parallel', label: 'En boucle de fond', hint: 'Tourne en continu' },
+];
+
+interface MovementOption {
+  value: MovementPattern['type'];
+  label: string;
+}
+
+const MOVEMENT_OPTIONS: MovementOption[] = [
+  { value: 'fixed', label: 'Immobile' },
+  { value: 'random', label: 'Aléatoire' },
+  { value: 'approach', label: 'Suit le joueur' },
+  { value: 'custom', label: 'Trajet personnalisé' },
+];
+
+interface DirectionOption {
+  value: 'up' | 'down' | 'left' | 'right';
+  label: string;
+  arrow: string;
+}
+
+const DIRECTION_OPTIONS: DirectionOption[] = [
+  { value: 'up', label: 'Haut', arrow: '↑' },
+  { value: 'down', label: 'Bas', arrow: '↓' },
+  { value: 'left', label: 'Gauche', arrow: '←' },
+  { value: 'right', label: 'Droite', arrow: '→' },
+];
+
+export function EventEditor({
+  event,
+  project,
+  mode,
+  onModeChange,
+  onChange,
+  onDelete,
+  onClose,
+}: EventEditorProps) {
   const [activePageIndex, setActivePageIndex] = useState(0);
   const safeIndex = Math.min(activePageIndex, event.pages.length - 1);
   const page = event.pages[safeIndex]!;
+  const isSimple = mode === 'simple';
 
-  const updatePage = (patch: Partial<EventPage>): void => {
-    const nextPages = event.pages.map((p, i) => (i === safeIndex ? { ...p, ...patch } : p));
-    onChange({ ...event, pages: nextPages });
-  };
+  const mapsInProject = useMemo<GameMap[]>(
+    () =>
+      project.items
+        .filter((item): item is { type: 'map'; map: GameMap } => item.type === 'map')
+        .map((item) => item.map),
+    [project.items],
+  );
 
-  const updateCommands = (commands: EventCommand[]): void => {
-    updatePage({ commands });
-  };
-
-  const updateConditions = (conditions: EventCondition[]): void => {
-    updatePage({ conditions });
-  };
+  const updatePage = useCallback(
+    (patch: Partial<EventPage>): void => {
+      const nextPages = event.pages.map((p, i) => (i === safeIndex ? { ...p, ...patch } : p));
+      onChange({ ...event, pages: nextPages });
+    },
+    [event, onChange, safeIndex],
+  );
 
   const addPage = (): void => {
     const nextPages = [...event.pages, createBlankEventPage()];
@@ -60,8 +126,6 @@ export function EventEditor({ event, onChange, onDelete, onClose }: EventEditorP
     setActivePageIndex(Math.max(0, safeIndex - 1));
   };
 
-  const movementLabel = useMemo(() => page.movement.type, [page.movement]);
-
   return (
     <div className="event-editor">
       <header className="event-editor-header">
@@ -69,6 +133,7 @@ export function EventEditor({ event, onChange, onDelete, onClose }: EventEditorP
           className="event-name-input"
           value={event.name}
           onChange={(e) => onChange({ ...event, name: e.target.value })}
+          aria-label="Nom de l’event"
         />
         <span className="event-coords">
           ({event.x}, {event.y})
@@ -90,25 +155,45 @@ export function EventEditor({ event, onChange, onDelete, onClose }: EventEditorP
         </div>
       </header>
 
+      <div className="event-mode-toggle">
+        <button
+          type="button"
+          className={isSimple ? 'active' : ''}
+          onClick={() => onModeChange('simple')}
+          title="Masque les options avancées (conditions, déplacement, script)"
+        >
+          Mode simple
+        </button>
+        <button
+          type="button"
+          className={!isSimple ? 'active' : ''}
+          onClick={() => onModeChange('advanced')}
+          title="Toutes les options RPG-Maker"
+        >
+          Mode avancé
+        </button>
+      </div>
+
       <div className="event-pages-tabs">
+        <span className="event-pages-label">Variantes :</span>
         {event.pages.map((_, i) => (
           <button
             key={i}
             type="button"
             className={i === safeIndex ? 'active' : ''}
             onClick={() => setActivePageIndex(i)}
-            title={`Page ${i + 1}`}
+            title={`Variante ${i + 1}`}
           >
-            P{i + 1}
+            {i + 1}
           </button>
         ))}
-        <button type="button" onClick={addPage} title="Ajouter une page">
+        <button type="button" onClick={addPage} title="Ajouter une variante">
           +
         </button>
         <button
           type="button"
           onClick={duplicatePage}
-          title="Dupliquer la page active"
+          title="Dupliquer la variante active"
           disabled={event.pages.length === 0}
         >
           ⎘
@@ -116,7 +201,7 @@ export function EventEditor({ event, onChange, onDelete, onClose }: EventEditorP
         <button
           type="button"
           onClick={deletePage}
-          title="Supprimer la page active"
+          title="Supprimer la variante active"
           disabled={event.pages.length <= 1}
           className="danger"
         >
@@ -125,44 +210,31 @@ export function EventEditor({ event, onChange, onDelete, onClose }: EventEditorP
       </div>
 
       <section className="event-page-body">
-        <div className="event-field">
-          <label>Trigger</label>
-          <select
-            value={page.trigger}
-            onChange={(e) => updatePage({ trigger: e.target.value as EventTrigger })}
-          >
-            {TRIGGERS.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
+        <fieldset className="event-section">
+          <legend>Quand ça se déclenche</legend>
+          <div className="event-trigger-choices">
+            {TRIGGER_OPTIONS.map((t) => (
+              <label
+                key={t.value}
+                className={`event-radio ${page.trigger === t.value ? 'active' : ''}`}
+                title={t.hint}
+              >
+                <input
+                  type="radio"
+                  name={`trigger-${event.id}-${safeIndex}`}
+                  checked={page.trigger === t.value}
+                  onChange={() => updatePage({ trigger: t.value })}
+                />
+                <span>{t.label}</span>
+              </label>
             ))}
-          </select>
-        </div>
+          </div>
+        </fieldset>
 
-        <div className="event-field">
-          <label>Mouvement</label>
-          <select
-            value={movementLabel}
-            onChange={(e) => {
-              const type = e.target.value as MovementPattern['type'];
-              updatePage({
-                movement:
-                  type === 'custom' ? { type: 'custom', route: [] } : ({ type } as MovementPattern),
-              });
-            }}
-          >
-            {MOVEMENTS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <fieldset className="event-graphic">
+        <fieldset className="event-section">
           <legend>Apparence</legend>
           <div className="event-field">
-            <label>Sprite ID</label>
+            <label>Sprite</label>
             <input
               value={page.graphic.spriteId ?? ''}
               placeholder="(invisible)"
@@ -176,42 +248,77 @@ export function EventEditor({ event, onChange, onDelete, onClose }: EventEditorP
               }
             />
           </div>
-          <div className="event-field">
-            <label>Direction</label>
+          {!isSimple && (
+            <>
+              <div className="event-field">
+                <label>Direction</label>
+                <div className="event-direction-choices">
+                  {DIRECTION_OPTIONS.map((d) => (
+                    <button
+                      key={d.value}
+                      type="button"
+                      className={page.graphic.direction === d.value ? 'active' : ''}
+                      title={d.label}
+                      onClick={() =>
+                        updatePage({ graphic: { ...page.graphic, direction: d.value } })
+                      }
+                    >
+                      {d.arrow}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="event-field">
+                <label>Frame</label>
+                <input
+                  type="number"
+                  value={page.graphic.frame}
+                  onChange={(e) =>
+                    updatePage({ graphic: { ...page.graphic, frame: Number(e.target.value) || 0 } })
+                  }
+                />
+              </div>
+            </>
+          )}
+        </fieldset>
+
+        {!isSimple && (
+          <fieldset className="event-section">
+            <legend>Déplacement (entre interactions)</legend>
             <select
-              value={page.graphic.direction}
-              onChange={(e) =>
+              value={page.movement.type}
+              onChange={(e) => {
+                const type = e.target.value as MovementPattern['type'];
                 updatePage({
-                  graphic: { ...page.graphic, direction: e.target.value as (typeof DIRECTIONS)[number] },
-                })
-              }
+                  movement:
+                    type === 'custom' ? { type: 'custom', route: [] } : ({ type } as MovementPattern),
+                });
+              }}
             >
-              {DIRECTIONS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
+              {MOVEMENT_OPTIONS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
                 </option>
               ))}
             </select>
-          </div>
-          <div className="event-field">
-            <label>Frame</label>
-            <input
-              type="number"
-              value={page.graphic.frame}
-              onChange={(e) =>
-                updatePage({
-                  graphic: { ...page.graphic, frame: Number(e.target.value) || 0 },
-                })
-              }
-            />
-          </div>
-        </fieldset>
+          </fieldset>
+        )}
 
-        <ConditionsEditor conditions={page.conditions} onChange={updateConditions} />
+        {!isSimple && (
+          <ConditionsEditor
+            conditions={page.conditions}
+            onChange={(conditions) => updatePage({ conditions })}
+          />
+        )}
 
-        <fieldset className="event-commands">
-          <legend>Commandes</legend>
-          <EventCommandList commands={page.commands} onChange={updateCommands} />
+        <fieldset className="event-section">
+          <legend>Actions (à l’activation)</legend>
+          <EventCommandList
+            commands={page.commands}
+            onChange={(commands) => updatePage({ commands })}
+            mode={mode}
+            maps={mapsInProject}
+          />
         </fieldset>
       </section>
     </div>
@@ -245,9 +352,9 @@ function ConditionsEditor({ conditions, onChange }: ConditionsEditorProps) {
   };
 
   return (
-    <fieldset className="event-conditions">
-      <legend>Conditions</legend>
-      {conditions.length === 0 && <p className="muted">Aucune — page toujours active.</p>}
+    <fieldset className="event-section">
+      <legend>Active seulement si…</legend>
+      {conditions.length === 0 && <p className="muted">Aucune condition — variante toujours active.</p>}
       {conditions.map((c, i) => (
         <ConditionRow key={i} condition={c} onChange={(next) => update(i, next)} onRemove={() => remove(i)} />
       ))}
@@ -262,7 +369,7 @@ function ConditionsEditor({ conditions, onChange }: ConditionsEditorProps) {
           + self_switch
         </button>
         <button type="button" onClick={() => add('item_owned')}>
-          + item_owned
+          + item possédé
         </button>
       </div>
     </fieldset>

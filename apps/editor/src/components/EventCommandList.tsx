@@ -1,22 +1,55 @@
-import type { EventCommand } from '@srb/types';
+import type { EventCommand, GameMap } from '@srb/types';
+import type { EventEditorMode } from './EventEditor';
 
 interface EventCommandListProps {
   commands: EventCommand[];
   onChange: (next: EventCommand[]) => void;
+  mode: EventEditorMode;
+  maps: GameMap[];
 }
 
 type CommandType = EventCommand['type'];
 
-const COMMAND_LABELS: Record<CommandType, string> = {
-  show_text: 'show_text',
-  transfer: 'transfer',
-  script: 'script',
-  placeholder: 'placeholder',
-};
+interface CommandChoice {
+  type: CommandType;
+  label: string;
+  advancedOnly?: boolean;
+}
 
-const COMMAND_CHOICES: CommandType[] = ['show_text', 'transfer', 'script', 'placeholder'];
+const COMMAND_CHOICES: CommandChoice[] = [
+  { type: 'show_text', label: 'Dire un texte' },
+  { type: 'transfer', label: 'Téléporter le joueur' },
+  { type: 'script', label: 'Code (expert)', advancedOnly: true },
+  { type: 'placeholder', label: 'Slot vide', advancedOnly: true },
+];
 
-export function EventCommandList({ commands, onChange }: EventCommandListProps) {
+function commandLabel(type: CommandType): string {
+  return COMMAND_CHOICES.find((c) => c.type === type)?.label ?? type;
+}
+
+function commandPreview(command: EventCommand, maps: GameMap[]): string {
+  switch (command.type) {
+    case 'show_text': {
+      const text = command.text.trim();
+      if (!text) return '(texte vide)';
+      return text.length > 60 ? `${text.slice(0, 57)}…` : text;
+    }
+    case 'transfer': {
+      const target = maps.find((m) => m.id === command.mapId);
+      const mapLabel = target ? target.name : command.mapId ? '(map inconnue)' : '(map à choisir)';
+      return `→ ${mapLabel} (${command.x}, ${command.y})`;
+    }
+    case 'script':
+      return command.code.trim() ? command.code.trim().slice(0, 40) : '(code vide)';
+    case 'placeholder':
+      return '';
+  }
+}
+
+export function EventCommandList({ commands, onChange, mode, maps }: EventCommandListProps) {
+  const isSimple = mode === 'simple';
+  const visibleChoices = COMMAND_CHOICES.filter((c) => !isSimple || !c.advancedOnly);
+
   const add = (type: CommandType): void => {
     onChange([...commands, blankCommand(type)]);
   };
@@ -41,11 +74,12 @@ export function EventCommandList({ commands, onChange }: EventCommandListProps) 
 
   return (
     <div className="event-commands-list">
-      {commands.length === 0 && <p className="muted">Aucune commande.</p>}
+      {commands.length === 0 && <p className="muted">Aucune action. Ajoute-en une ci-dessous.</p>}
       {commands.map((cmd, i) => (
         <CommandRow
           key={i}
           command={cmd}
+          maps={maps}
           onChange={(next) => update(i, next)}
           onRemove={() => remove(i)}
           onMoveUp={() => move(i, -1)}
@@ -56,9 +90,9 @@ export function EventCommandList({ commands, onChange }: EventCommandListProps) 
       ))}
       <div className="event-commands-add">
         <span className="muted">Ajouter :</span>
-        {COMMAND_CHOICES.map((t) => (
-          <button key={t} type="button" onClick={() => add(t)}>
-            + {COMMAND_LABELS[t]}
+        {visibleChoices.map((c) => (
+          <button key={c.type} type="button" onClick={() => add(c.type)}>
+            + {c.label}
           </button>
         ))}
       </div>
@@ -68,6 +102,7 @@ export function EventCommandList({ commands, onChange }: EventCommandListProps) 
 
 interface CommandRowProps {
   command: EventCommand;
+  maps: GameMap[];
   onChange: (next: EventCommand) => void;
   onRemove: () => void;
   onMoveUp: () => void;
@@ -78,6 +113,7 @@ interface CommandRowProps {
 
 function CommandRow({
   command,
+  maps,
   onChange,
   onRemove,
   onMoveUp,
@@ -85,10 +121,14 @@ function CommandRow({
   canMoveUp,
   canMoveDown,
 }: CommandRowProps) {
+  const preview = commandPreview(command, maps);
   return (
     <div className="event-command-row">
       <div className="event-command-row-header">
-        <span className="event-command-type">{command.type}</span>
+        <div className="event-command-title">
+          <span className="event-command-type">{commandLabel(command.type)}</span>
+          {preview && <span className="event-command-preview">{preview}</span>}
+        </div>
         <div className="event-command-row-actions">
           <button type="button" onClick={onMoveUp} disabled={!canMoveUp} title="Monter">
             ↑
@@ -105,23 +145,29 @@ function CommandRow({
         {command.type === 'show_text' && (
           <textarea
             value={command.text}
-            placeholder="Texte à afficher"
+            placeholder="Texte affiché dans la boîte de dialogue"
             rows={2}
             onChange={(e) => onChange({ ...command, text: e.target.value })}
           />
         )}
         {command.type === 'transfer' && (
           <div className="event-command-grid">
-            <label>
-              mapId
-              <input
+            <label className="event-command-span-2">
+              Map cible
+              <select
                 value={command.mapId}
-                placeholder="map-xxxxxxxx"
                 onChange={(e) => onChange({ ...command, mapId: e.target.value })}
-              />
+              >
+                <option value="">— choisir une map —</option>
+                {maps.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
             </label>
             <label>
-              x
+              Tile X
               <input
                 type="number"
                 value={command.x}
@@ -129,7 +175,7 @@ function CommandRow({
               />
             </label>
             <label>
-              y
+              Tile Y
               <input
                 type="number"
                 value={command.y}
@@ -146,9 +192,7 @@ function CommandRow({
             onChange={(e) => onChange({ ...command, code: e.target.value })}
           />
         )}
-        {command.type === 'placeholder' && (
-          <p className="muted">Placeholder — emplacement vide.</p>
-        )}
+        {command.type === 'placeholder' && <p className="muted">Slot vide.</p>}
       </div>
     </div>
   );

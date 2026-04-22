@@ -4,7 +4,7 @@ import { LayerSelect } from '../components/LayerSelect';
 import { ToolSelect } from '../components/ToolSelect';
 import { ProjectTree } from '../components/ProjectTree';
 import { MapCanvas } from '../components/MapCanvas';
-import { EventEditor } from '../components/EventEditor';
+import { EventEditor, useEventEditorMode } from '../components/EventEditor';
 import { findEventById } from '../data/events';
 
 /**
@@ -77,8 +77,10 @@ export function HelpPanel() {
         <strong>Shift+drag</strong> avec stamp ou eraser = rect (sans changer d&apos;outil).
       </p>
       <p>
-        <strong>Outil Event</strong> : clic sur une tile vide = crée un event, clic sur un event =
-        le sélectionne dans le panneau Event.
+        <strong>Outil Event</strong> : clic sur une tile vide = ouvre le choix de modèle (PNJ,
+        panneau, téléporteur…), clic sur un event existant = l&apos;ouvre dans le panneau Event.
+        Le panneau a un bouton <strong>Mode simple / Avancé</strong> pour masquer ou exposer les
+        options RPG-Maker.
       </p>
       <p>
         <strong>Double-clic</strong> sur un item du projet pour le renommer ·{' '}
@@ -118,6 +120,7 @@ export function CanvasPanel() {
 
 export function EventPanel() {
   const e = useEditor();
+  const [mode, setMode] = useEventEditorMode();
   const selected =
     e.selectedEventId && e.activeMap ? findEventById(e.activeMap, e.selectedEventId) : null;
   if (!selected) {
@@ -148,6 +151,9 @@ export function EventPanel() {
     >
       <EventEditor
         event={selected}
+        project={e.project}
+        mode={mode}
+        onModeChange={setMode}
         onChange={e.onEventChange}
         onDelete={e.onEventDelete}
         onClose={() => e.setSelectedEventId(null)}

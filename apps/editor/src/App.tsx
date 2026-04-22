@@ -34,13 +34,14 @@ import {
 } from './data/project';
 import {
   addEventToMap,
-  createBlankEvent,
   deleteEventFromMap,
   findEventAt,
   replaceEventInMap,
 } from './data/events';
+import { createEventFromTemplate, type EventTemplateId } from './data/event-templates';
+import { EventTemplatePicker } from './components/EventTemplatePicker';
 
-const APP_VERSION = '0.4.1';
+const APP_VERSION = '0.4.2';
 const PLAYER_URL =
   (import.meta.env.VITE_PLAYER_URL as string | undefined) ?? 'http://localhost:5173/?preview=1';
 
@@ -74,6 +75,9 @@ export function App() {
   const [settingsMapId, setSettingsMapId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [templatePickerCoords, setTemplatePickerCoords] = useState<{ x: number; y: number } | null>(
+    null,
+  );
 
   const workspace = useWorkspace();
   const [layoutToApply, setLayoutToApply] = useState<SerializedDockview | 'default' | null>(null);
@@ -106,16 +110,28 @@ export function App() {
       const existing = findEventAt(activeMap, tileX, tileY);
       if (existing) {
         setSelectedEventId(existing.id);
-      } else {
-        const fresh = createBlankEvent(tileX, tileY);
-        setProject((p: Project) => replaceActiveMap(p, addEventToMap(activeMap, fresh)));
-        setSelectedEventId(fresh.id);
+        focusPanel('event');
+        return;
       }
-      // Surface the Event panel so the user sees the editor even if its tab
-      // was buried behind another stacked panel (Help, Project, etc.).
+      // Empty tile: offer a template picker rather than spawning a blank,
+      // half-configured event. "Vide" template is still available for users
+      // who know exactly what they want.
+      setTemplatePickerCoords({ x: tileX, y: tileY });
+    },
+    [activeMap, focusPanel],
+  );
+
+  const handlePickTemplate = useCallback(
+    (templateId: EventTemplateId) => {
+      if (!activeMap || !templatePickerCoords) return;
+      const { x, y } = templatePickerCoords;
+      const fresh = createEventFromTemplate(templateId, x, y);
+      setProject((p: Project) => replaceActiveMap(p, addEventToMap(activeMap, fresh)));
+      setSelectedEventId(fresh.id);
+      setTemplatePickerCoords(null);
       focusPanel('event');
     },
-    [activeMap, setProject, focusPanel],
+    [activeMap, setProject, templatePickerCoords, focusPanel],
   );
 
   const handleEventChange = useCallback(
@@ -419,6 +435,14 @@ export function App() {
             onClose={() => setPreviewOpen(false)}
           />
         )}
+
+        <EventTemplatePicker
+          open={templatePickerCoords !== null}
+          tileX={templatePickerCoords?.x ?? 0}
+          tileY={templatePickerCoords?.y ?? 0}
+          onClose={() => setTemplatePickerCoords(null)}
+          onPick={handlePickTemplate}
+        />
       </div>
     </EditorProvider>
   );
