@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SerializedDockview } from 'dockview-react';
-import type { GameMap, Project } from '@srb/types';
+import type { GameMap, MapEvent, Project } from '@srb/types';
 import { DockLayout } from './components/DockLayout';
 import { NewMapDialog } from './components/NewMapDialog';
 import { ResizeMapDialog } from './components/ResizeMapDialog';
@@ -32,8 +32,15 @@ import {
   resizeMap,
   setActiveMapId,
 } from './data/project';
+import {
+  addEventToMap,
+  createBlankEvent,
+  deleteEventFromMap,
+  findEventAt,
+  replaceEventInMap,
+} from './data/events';
 
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.4.0';
 const PLAYER_URL =
   (import.meta.env.VITE_PLAYER_URL as string | undefined) ?? 'http://localhost:5173/?preview=1';
 
@@ -66,6 +73,7 @@ export function App() {
   const [newMapDialogOpen, setNewMapDialogOpen] = useState(false);
   const [settingsMapId, setSettingsMapId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
   const workspace = useWorkspace();
   const [layoutToApply, setLayoutToApply] = useState<SerializedDockview | 'default' | null>(null);
@@ -81,9 +89,44 @@ export function App() {
 
   const handleSelectMap = useCallback(
     (mapId: string) => {
+      setSelectedEventId(null);
       setProject((p: Project) => setActiveMapId(p, mapId));
     },
     [setProject],
+  );
+
+  const handleEventToolClick = useCallback(
+    (tileX: number, tileY: number) => {
+      if (!activeMap) return;
+      const existing = findEventAt(activeMap, tileX, tileY);
+      if (existing) {
+        setSelectedEventId(existing.id);
+        return;
+      }
+      const fresh = createBlankEvent(tileX, tileY);
+      setProject((p: Project) => replaceActiveMap(p, addEventToMap(activeMap, fresh)));
+      setSelectedEventId(fresh.id);
+    },
+    [activeMap, setProject],
+  );
+
+  const handleEventChange = useCallback(
+    (next: MapEvent) => {
+      if (!activeMap) return;
+      setProject((p: Project) =>
+        replaceActiveMap(p, replaceEventInMap(activeMap, next.id, next)),
+      );
+    },
+    [activeMap, setProject],
+  );
+
+  const handleEventDelete = useCallback(
+    (eventId: string) => {
+      if (!activeMap) return;
+      setProject((p: Project) => replaceActiveMap(p, deleteEventFromMap(activeMap, eventId)));
+      setSelectedEventId((cur) => (cur === eventId ? null : cur));
+    },
+    [activeMap, setProject],
   );
 
   const openNewMapDialog = useCallback((parentId?: string) => {
@@ -221,6 +264,10 @@ export function App() {
         setActiveTool('fill');
         return;
       }
+      if (e.key.toLowerCase() === 'v' && !ctrl) {
+        setActiveTool('event');
+        return;
+      }
     };
     // Register on BOTH window and document in capture phase. Some embedded
     // libs (Phaser/Dockview) may attach to one target but not the other;
@@ -257,6 +304,11 @@ export function App() {
     onOpenMapSettings: setSettingsMapId,
     onStrokeBegin: history.beginStroke,
     onStrokeEnd: history.commitStroke,
+    selectedEventId,
+    setSelectedEventId,
+    onEventChange: handleEventChange,
+    onEventDelete: handleEventDelete,
+    onEventToolClick: handleEventToolClick,
   };
 
   return (

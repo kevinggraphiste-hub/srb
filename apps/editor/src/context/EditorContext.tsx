@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import type { GameMap, Project } from '@srb/types';
+import type { GameMap, MapEvent, Project } from '@srb/types';
 import type { EditableLayer, RenderableLayer } from '../components/LayerSelect';
 import type { Tool } from '../components/ToolSelect';
 
@@ -38,6 +38,12 @@ export interface EditorContextValue {
   onDelete: (itemId: string) => void;
   onMove: (sourceId: string, newParentId?: string) => void;
   onOpenMapSettings: (mapId: string) => void;
+
+  selectedEventId: string | null;
+  setSelectedEventId: (id: string | null) => void;
+  onEventChange: (event: MapEvent) => void;
+  onEventDelete: (eventId: string) => void;
+  onEventToolClick: (tileX: number, tileY: number) => void;
 }
 
 const EditorContext = createContext<EditorContextValue | null>(null);

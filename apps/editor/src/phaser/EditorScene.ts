@@ -1,12 +1,12 @@
 import * as Phaser from 'phaser';
-import type { GameMap } from '@srb/types';
+import type { GameMap, MapEvent } from '@srb/types';
 import { getTileDef } from '@srb/engine';
 
 export const TILE_SIZE = 32;
 
 export type RenderableLayerId = 'background' | 'ground' | 'detail' | 'objects' | 'overlay';
 
-export type HoverStyle = 'stamp' | 'eraser' | 'rect' | 'fill';
+export type HoverStyle = 'stamp' | 'eraser' | 'rect' | 'fill' | 'event';
 
 /** Raw pointer events emitted to React, which owns all edit logic. */
 export interface EditorSceneCallbacks {
@@ -23,6 +23,13 @@ export interface EditorSceneData {
   callbacks: EditorSceneCallbacks;
 }
 
+const EVENT_TRIGGER_COLOR: Record<string, number> = {
+  action: 0x4da6ff,
+  contact: 0xff9f43,
+  auto: 0x9b59b6,
+  parallel: 0x2ecc71,
+};
+
 export class EditorScene extends Phaser.Scene {
   private map!: GameMap;
   private hiddenLayers: Set<RenderableLayerId> = new Set();
@@ -33,9 +40,12 @@ export class EditorScene extends Phaser.Scene {
   private gridGraphics!: Phaser.GameObjects.Graphics;
   private hoverRect!: Phaser.GameObjects.Rectangle;
   private previewGraphics!: Phaser.GameObjects.Graphics;
+  private eventsContainer!: Phaser.GameObjects.Container;
   private previewColor = 0xff6b6b;
 
   private showCollision = false;
+  private showEvents = false;
+  private selectedEventId: string | null = null;
 
   constructor() {
     super({ key: 'EditorScene' });
@@ -50,7 +60,9 @@ export class EditorScene extends Phaser.Scene {
           ? 0x5ed07a
           : tool === 'rect'
             ? 0xffd96b
-            : 0xff6b6b;
+            : tool === 'event'
+              ? 0x4da6ff
+              : 0xff6b6b;
     this.hoverRect.setStrokeStyle(2, color);
     this.previewColor = color;
   }
@@ -63,6 +75,17 @@ export class EditorScene extends Phaser.Scene {
   setShowCollision(show: boolean): void {
     this.showCollision = show;
     if (this.collisionOverlay) this.renderCollision();
+  }
+
+  /** Toggles event markers visibility. Forced on while the Event tool is active. */
+  setShowEvents(show: boolean): void {
+    this.showEvents = show;
+    if (this.eventsContainer) this.renderEvents();
+  }
+
+  setSelectedEventId(id: string | null): void {
+    this.selectedEventId = id;
+    if (this.eventsContainer) this.renderEvents();
   }
 
   /** Show a filled preview rectangle between two tiles (inclusive). Pass null to hide. */
@@ -102,6 +125,10 @@ export class EditorScene extends Phaser.Scene {
 
     this.gridGraphics = this.add.graphics();
     this.drawGrid();
+
+    this.eventsContainer = this.add.container(0, 0);
+    this.eventsContainer.setDepth(400);
+    this.renderEvents();
 
     this.hoverRect = this.add
       .rectangle(0, 0, TILE_SIZE, TILE_SIZE, 0xffffff, 0.15)
@@ -144,6 +171,7 @@ export class EditorScene extends Phaser.Scene {
     this.renderMap();
     this.renderCollision();
     this.drawGrid();
+    this.renderEvents();
   }
 
   private renderMap(): void {
@@ -186,6 +214,44 @@ export class EditorScene extends Phaser.Scene {
         }
       }
     }
+  }
+
+  private renderEvents(): void {
+    if (!this.eventsContainer) return;
+    this.eventsContainer.removeAll(true);
+    if (!this.showEvents) return;
+    for (const ev of this.map.events) {
+      this.eventsContainer.add(this.buildEventMarker(ev));
+    }
+  }
+
+  private buildEventMarker(ev: MapEvent): Phaser.GameObjects.Container {
+    const firstPage = ev.pages[0];
+    const trigger = firstPage?.trigger ?? 'action';
+    const color = EVENT_TRIGGER_COLOR[trigger] ?? 0x4da6ff;
+    const selected = this.selectedEventId === ev.id;
+
+    const px = ev.x * TILE_SIZE;
+    const py = ev.y * TILE_SIZE;
+
+    const bg = this.add.graphics();
+    bg.fillStyle(color, selected ? 0.55 : 0.35);
+    bg.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    bg.lineStyle(selected ? 3 : 2, color, 1);
+    bg.strokeRect(px + 1, py + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+
+    // Letter indicating trigger type.
+    const letter = (trigger[0] ?? 'A').toUpperCase();
+    const text = this.add.text(px + TILE_SIZE / 2, py + TILE_SIZE / 2, letter, {
+      fontSize: '16px',
+      fontFamily: 'monospace',
+      color: '#ffffff',
+      stroke: '#000000',
+      strokeThickness: 3,
+    });
+    text.setOrigin(0.5, 0.5);
+
+    return this.add.container(0, 0, [bg, text]);
   }
 
   private drawGrid(): void {

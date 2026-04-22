@@ -4,6 +4,8 @@ import { LayerSelect } from '../components/LayerSelect';
 import { ToolSelect } from '../components/ToolSelect';
 import { ProjectTree } from '../components/ProjectTree';
 import { MapCanvas } from '../components/MapCanvas';
+import { EventEditor } from '../components/EventEditor';
+import { findEventById } from '../data/events';
 
 /**
  * Each exported component here is registered with DockviewReact via its
@@ -68,10 +70,15 @@ export function HelpPanel() {
     <div className="panel-body help-panel">
       <p>
         <strong>B</strong> stamp · <strong>E</strong> eraser · <strong>R</strong> rect ·{' '}
-        <strong>F</strong> fill · <strong>Ctrl+Z</strong> undo · <strong>Ctrl+P</strong> preview
+        <strong>F</strong> fill · <strong>V</strong> event · <strong>Ctrl+Z</strong> undo ·{' '}
+        <strong>Ctrl+P</strong> preview
       </p>
       <p>
         <strong>Shift+drag</strong> avec stamp ou eraser = rect (sans changer d&apos;outil).
+      </p>
+      <p>
+        <strong>Outil Event</strong> : clic sur une tile vide = crée un event, clic sur un event =
+        le sélectionne dans le panneau Event.
       </p>
       <p>
         <strong>Double-clic</strong> sur un item du projet pour le renommer ·{' '}
@@ -81,9 +88,6 @@ export function HelpPanel() {
       <p>
         Tu peux aussi <strong>glisser les onglets</strong> de chaque panel pour les réorganiser, les
         stacker, ou les mettre en haut/bas.
-      </p>
-      <p style={{ color: '#555', marginTop: 8 }}>
-        Pas encore de sauvegarde du projet — ferme l&apos;onglet = tout perdu.
       </p>
     </div>
   );
@@ -103,10 +107,38 @@ export function CanvasPanel() {
       selectedTileId={e.selectedTileId}
       activeTool={e.activeTool}
       showCollision={e.showCollision}
+      selectedEventId={e.selectedEventId}
       onMapChange={e.onMapChange}
       onStrokeBegin={e.onStrokeBegin}
       onStrokeEnd={e.onStrokeEnd}
+      onEventToolClick={e.onEventToolClick}
     />
+  );
+}
+
+export function EventPanel() {
+  const e = useEditor();
+  const selected =
+    e.selectedEventId && e.activeMap ? findEventById(e.activeMap, e.selectedEventId) : null;
+  if (!selected) {
+    return (
+      <div className="panel-body event-panel-empty">
+        <p className="muted">
+          Aucun event sélectionné. Active l&apos;outil <strong>Event (V)</strong> et clique sur une
+          tile pour en créer ou en sélectionner un.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="panel-body">
+      <EventEditor
+        event={selected}
+        onChange={e.onEventChange}
+        onDelete={e.onEventDelete}
+        onClose={() => e.setSelectedEventId(null)}
+      />
+    </div>
   );
 }
 
@@ -117,6 +149,7 @@ export const PANEL_COMPONENTS = {
   project: ProjectPanel,
   help: HelpPanel,
   canvas: CanvasPanel,
+  event: EventPanel,
 } as const;
 
 export const PANEL_TITLES: Record<keyof typeof PANEL_COMPONENTS, string> = {
@@ -126,4 +159,5 @@ export const PANEL_TITLES: Record<keyof typeof PANEL_COMPONENTS, string> = {
   project: 'Projet',
   help: 'Aide',
   canvas: 'Map',
+  event: 'Event',
 };

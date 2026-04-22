@@ -678,3 +678,267 @@ body {
   color: #ff6b6b;
   background: #1e1e1e;
 }
+
+/* ============ Event editor ============ */
+
+.event-panel-empty {
+  padding: 12px;
+}
+
+.event-panel-empty .muted,
+.event-editor .muted {
+  color: #777;
+  font-size: 12px;
+}
+
+.event-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-size: 12px;
+}
+
+.event-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #2a2a2a;
+  background: #141414;
+}
+
+.event-name-input {
+  flex: 1;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  color: #e0e0e0;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.event-coords {
+  color: #777;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.event-editor-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.event-editor-actions button,
+.event-pages-tabs button,
+.event-conditions-add button,
+.event-commands-add button,
+.event-command-row-actions button {
+  background: #1a1a1a;
+  color: #e0e0e0;
+  border: 1px solid #2a2a2a;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-family: monospace;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.event-editor-actions button:hover:not(:disabled),
+.event-pages-tabs button:hover:not(:disabled),
+.event-conditions-add button:hover:not(:disabled),
+.event-commands-add button:hover:not(:disabled),
+.event-command-row-actions button:hover:not(:disabled) {
+  background: #2a2a2a;
+  border-color: #ff6b6b;
+}
+
+.event-editor-actions button:disabled,
+.event-pages-tabs button:disabled,
+.event-command-row-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.event-editor-actions .danger,
+.event-pages-tabs .danger,
+.event-command-row-actions .danger {
+  color: #ff6b6b;
+}
+
+.event-pages-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #2a2a2a;
+  flex-wrap: wrap;
+}
+
+.event-pages-tabs button.active {
+  background: #2a1313;
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.event-page-body {
+  flex: 1;
+  overflow: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.event-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.event-field label {
+  min-width: 80px;
+  color: #777;
+  font-family: monospace;
+}
+
+.event-field input,
+.event-field select,
+.event-field textarea {
+  flex: 1;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  color: #e0e0e0;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.event-graphic,
+.event-conditions,
+.event-commands {
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.event-graphic legend,
+.event-conditions legend,
+.event-commands legend {
+  padding: 0 6px;
+  color: #ff6b6b;
+  font-size: 11px;
+  font-family: monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.event-condition-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 3px;
+  background: #101010;
+}
+
+.event-condition-row input,
+.event-condition-row select {
+  flex: 1;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  color: #e0e0e0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.event-condition-type {
+  color: #4da6ff;
+  font-family: monospace;
+  font-size: 11px;
+  min-width: 90px;
+}
+
+.event-conditions-add,
+.event-commands-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.event-commands-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.event-command-row {
+  border: 1px solid #2a2a2a;
+  border-radius: 3px;
+  background: #101010;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.event-command-row-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.event-command-type {
+  color: #5ed07a;
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.event-command-row-actions {
+  display: flex;
+  gap: 3px;
+}
+
+.event-command-row-body textarea {
+  width: 100%;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  color: #e0e0e0;
+  padding: 4px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.event-command-grid {
+  display: grid;
+  grid-template-columns: 1fr 70px 70px;
+  gap: 6px;
+}
+
+.event-command-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 10px;
+  color: #777;
+  font-family: monospace;
+}
+
+.event-command-grid input {
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  color: #e0e0e0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 11px;
+}

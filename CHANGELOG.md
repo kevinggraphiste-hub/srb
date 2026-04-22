@@ -4,6 +4,47 @@ Toutes les modifications notables de SRB sont listées ici.
 
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et le projet suit [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.4.0] — 2026-04-22 — Phase 3 step 1 : placement & édition d'events
+
+Premier palier de la Phase 3 « Événements ». L'éditeur permet maintenant de
+poser des events sur la map et d'en éditer la structure (pages, conditions,
+mouvement, apparence, liste de commandes). Le set de commandes éditables
+reste celui déjà supporté au runtime en v0.3 (`show_text`, `transfer`,
+`script`, `placeholder`) — les ~25 commandes supplémentaires prévues par la
+spec arrivent en v0.5 → v0.9.
+
+### Added
+
+- **Spec `docs/specs/event-commands.md`** (draft 1.0.0) : catalogue complet
+  des commandes prévues en P3, sémantique runtime, stores switches/variables,
+  règles de compatibilité. Vit tout au long de P3.
+- **Outil Event (`V`)** dans la palette d'outils :
+  - clic sur une tile vide → crée un event et le sélectionne
+  - clic sur un event existant → le sélectionne
+  - affichage automatique des markers d'events sur le canvas quand l'outil
+    est actif (lettre du trigger : A/C/A/P, couleur par trigger)
+- **Panneau « Event »** (stacké avec Aide, à droite) :
+  - renommage inline + suppression (avec confirmation)
+  - onglets de pages (ajouter / dupliquer / supprimer)
+  - par page : trigger, pattern de mouvement, apparence (spriteId, direction,
+    frame), conditions (switch / variable / self\_switch / item\_owned),
+    liste éditable de commandes
+- **Éditeur de commandes** : ajout, suppression, réordonnancement (↑ / ↓),
+  édition inline des paramètres pour les 4 types existants.
+- Raccourci `V` pour basculer sur l'outil Event, listé dans le panneau Aide.
+
+### Changed
+
+- `EditorScene` : nouveau container « events » rendu au-dessus de la map,
+  avec highlight de l'event sélectionné. Toggle `showEvents` + setter
+  `setSelectedEventId` exposés.
+- `EditorContext` : expose `selectedEventId`, `setSelectedEventId`,
+  `onEventChange`, `onEventDelete`, `onEventToolClick`.
+- Layout par défaut dockview : ajoute le panneau Event (stacké avec l'Aide
+  dans la colonne de droite). Les workspaces existants au format v2 ne sont
+  pas invalidés — le panneau apparaît au prochain reset au défaut.
+- Tous packages bumpés à 0.4.0.
+
 ## [0.3.0] — 2026-04-22 — Phase 2 « Éditeur de maps » complète
 
 Tout ce qui manquait à l'éditeur pour être autonome : nouveaux outils

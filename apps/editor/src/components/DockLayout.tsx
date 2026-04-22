@@ -63,7 +63,7 @@ function buildHardcodedLayout(api: DockviewApi): void {
     position: { referencePanel: 'tools', direction: 'right' },
   });
 
-  // Right column: Project tree + Help.
+  // Right column: Project tree + Event editor + Help (stacked).
   api.addPanel({
     id: 'project',
     component: 'project',
@@ -71,10 +71,16 @@ function buildHardcodedLayout(api: DockviewApi): void {
     position: { referencePanel: 'canvas', direction: 'right' },
   });
   api.addPanel({
+    id: 'event',
+    component: 'event',
+    title: PANEL_TITLES.event,
+    position: { referencePanel: 'project', direction: 'below' },
+  });
+  api.addPanel({
     id: 'help',
     component: 'help',
     title: PANEL_TITLES.help,
-    position: { referencePanel: 'project', direction: 'below' },
+    position: { referencePanel: 'event', direction: 'within' },
   });
 }
 

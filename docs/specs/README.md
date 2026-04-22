@@ -8,7 +8,7 @@ Spécifications techniques détaillées des formats et contrats de SRB.
 | --------------------- | ----- | --------------------------------------------- |
 | `project-format.md`   | P1-P3 | Structure JSON d'un projet SRB complet        |
 | `map-format.md`       | P1-P2 | Layers, tiles, collisions, events             |
-| `event-commands.md`   | P3    | Liste des commandes d'events (type + params)  |
+| `event-commands.md`   | P3    | Liste des commandes d'events — ✅ draft 1.0.0 |
 | `database-schemas.md` | P4    | Acteurs, classes, items, skills, ennemis      |
 | `battle-formulas.md`  | P4    | Formules de dégâts, XP, level up              |
 | `api.md`              | P5    | Contrats API REST (endpoints, payloads)       |

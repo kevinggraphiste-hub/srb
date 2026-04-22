@@ -17,9 +17,11 @@ interface MapCanvasProps {
   selectedTileId: number;
   activeTool: Tool;
   showCollision: boolean;
+  selectedEventId: string | null;
   onMapChange: (next: GameMap) => void;
   onStrokeBegin: () => void;
   onStrokeEnd: () => void;
+  onEventToolClick: (tileX: number, tileY: number) => void;
 }
 
 /**
@@ -34,9 +36,11 @@ export function MapCanvas({
   selectedTileId,
   activeTool,
   showCollision,
+  selectedEventId,
   onMapChange,
   onStrokeBegin,
   onStrokeEnd,
+  onEventToolClick,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<EditorScene | null>(null);
@@ -49,9 +53,11 @@ export function MapCanvas({
     selectedTileId,
     activeTool,
     showCollision,
+    selectedEventId,
     onMapChange,
     onStrokeBegin,
     onStrokeEnd,
+    onEventToolClick,
   });
   latestRef.current = {
     map,
@@ -60,9 +66,11 @@ export function MapCanvas({
     selectedTileId,
     activeTool,
     showCollision,
+    selectedEventId,
     onMapChange,
     onStrokeBegin,
     onStrokeEnd,
+    onEventToolClick,
   };
 
   // State that lives across pointer events within one stroke.
@@ -164,6 +172,13 @@ export function MapCanvas({
         callbacks: {
           onPointerDown: (tileX: number, tileY: number) => {
             const cur = latestRef.current;
+
+            // Event tool: no stroke, no paint — just select/create.
+            if (cur.activeTool === 'event') {
+              cur.onEventToolClick(tileX, tileY);
+              return;
+            }
+
             cur.onStrokeBegin();
 
             // Shift + stamp/eraser promotes the drag to rect mode. Eraser stays
@@ -173,7 +188,7 @@ export function MapCanvas({
               (cur.activeTool === 'stamp' || cur.activeTool === 'eraser');
             const mode: 'stamp' | 'eraser' | 'rect' | 'fill' = promoteToRect
               ? 'rect'
-              : cur.activeTool;
+              : (cur.activeTool as 'stamp' | 'eraser' | 'rect' | 'fill');
             strokeRef.current = {
               startX: tileX,
               startY: tileY,
@@ -232,6 +247,8 @@ export function MapCanvas({
       const sceneInstance = game.scene.add('EditorScene', EditorScene, true) as EditorScene;
       sceneRef.current = sceneInstance;
       sceneInstance.setShowCollision(latestRef.current.showCollision);
+      sceneInstance.setShowEvents(latestRef.current.activeTool === 'event');
+      sceneInstance.setSelectedEventId(latestRef.current.selectedEventId);
     });
 
     return (): void => {
@@ -247,6 +264,7 @@ export function MapCanvas({
 
   useEffect(() => {
     sceneRef.current?.setHoverStyle(toolToHover(activeTool));
+    sceneRef.current?.setShowEvents(activeTool === 'event');
   }, [activeTool]);
 
   useEffect(() => {
@@ -258,6 +276,10 @@ export function MapCanvas({
     // even if the global toggle is off — otherwise paint does nothing visible.
     sceneRef.current?.setShowCollision(showCollision || activeLayer === 'collision');
   }, [showCollision, activeLayer]);
+
+  useEffect(() => {
+    sceneRef.current?.setSelectedEventId(selectedEventId);
+  }, [selectedEventId]);
 
   return <div id="map-canvas" ref={containerRef} />;
 }
