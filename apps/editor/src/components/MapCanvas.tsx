@@ -176,8 +176,10 @@ export function MapCanvas({
   }, [hiddenLayers]);
 
   useEffect(() => {
-    sceneRef.current?.setShowCollision(showCollision);
-  }, [showCollision]);
+    // Force the collision overlay on when the user is actively editing collision,
+    // even if the global toggle is off — otherwise paint does nothing visible.
+    sceneRef.current?.setShowCollision(showCollision || activeLayer === 'collision');
+  }, [showCollision, activeLayer]);
 
   return <div id="map-canvas" ref={containerRef} />;
 }

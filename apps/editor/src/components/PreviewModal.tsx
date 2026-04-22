@@ -25,6 +25,9 @@ export function PreviewModal({ project, startMapId, playerUrl, onClose }: Previe
       if (!target || target !== event.source) return;
       target.postMessage({ type: 'srb:preview-project', project, startMapId }, '*');
       setStatus('ready');
+      // Keyboard events only fire inside whichever window has focus. Focus the
+      // inner window (not just the iframe element) so arrow keys reach Phaser.
+      requestAnimationFrame(() => target.focus());
     };
     window.addEventListener('message', handler);
     const timeout = window.setTimeout(() => {
@@ -67,6 +70,8 @@ export function PreviewModal({ project, startMapId, playerUrl, onClose }: Previe
           width={640}
           height={480}
           className="preview-iframe"
+          tabIndex={0}
+          onMouseEnter={() => iframeRef.current?.contentWindow?.focus()}
         />
         <footer className="preview-modal-footer">
           <span>Flèches pour bouger · Espace/A pour interagir</span>
