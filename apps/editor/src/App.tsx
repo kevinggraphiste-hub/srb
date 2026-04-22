@@ -8,6 +8,15 @@ import { WorkspaceMenu } from './components/WorkspaceMenu';
 import { EditorProvider, type EditorContextValue } from './context/EditorContext';
 import { useWorkspace } from './hooks/useWorkspace';
 import { useProjectHistory } from './hooks/useProjectHistory';
+import {
+  clearAutosavedProject,
+  exportProjectAsJson,
+  importProjectFromFile,
+  loadAutosavedProject,
+  useAutosave,
+} from './hooks/useProjectPersistence';
+import { ProjectMenu } from './components/ProjectMenu';
+import { PreviewModal } from './components/PreviewModal';
 import type { EditableLayer, RenderableLayer } from './components/LayerSelect';
 import type { Tool } from './components/ToolSelect';
 import { createBlankMap } from './data/blank-map';
@@ -25,11 +34,14 @@ import {
 } from './data/project';
 
 const APP_VERSION = '0.3.0';
+const PLAYER_URL =
+  (import.meta.env.VITE_PLAYER_URL as string | undefined) ?? 'http://localhost:5173/?preview=1';
 
 export function App() {
-  const history = useProjectHistory(createBlankProject);
+  const history = useProjectHistory(() => loadAutosavedProject() ?? createBlankProject());
   const project = history.project;
   const setProject = history.setProject;
+  useAutosave(project);
 
   const [selectedTileId, setSelectedTileId] = useState<number>(0);
   const [activeLayer, setActiveLayer] = useState<EditableLayer>('ground');
@@ -51,6 +63,7 @@ export function App() {
   const [newMapParentId, setNewMapParentId] = useState<string | undefined>(undefined);
   const [newMapDialogOpen, setNewMapDialogOpen] = useState(false);
   const [settingsMapId, setSettingsMapId] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const workspace = useWorkspace();
   const [layoutToApply, setLayoutToApply] = useState<SerializedDockview | 'default' | null>(null);
@@ -130,6 +143,35 @@ export function App() {
     [settingsMapId, setProject],
   );
 
+  const handleRenameProject = useCallback(
+    (next: string) => {
+      setProject((p: Project) => ({ ...p, name: next }));
+    },
+    [setProject],
+  );
+
+  const handleExportProject = useCallback(() => {
+    exportProjectAsJson(project);
+  }, [project]);
+
+  const handleImportProject = useCallback(
+    async (file: File) => {
+      try {
+        const imported = await importProjectFromFile(file);
+        history.replaceAll(imported);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Import échoué.';
+        window.alert(message);
+      }
+    },
+    [history],
+  );
+
+  const handleNewProject = useCallback(() => {
+    clearAutosavedProject();
+    history.replaceAll(createBlankProject());
+  }, [history]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       const ctrl = e.ctrlKey || e.metaKey;
@@ -145,6 +187,12 @@ export function App() {
       if (ctrl && e.key.toLowerCase() === 'y') {
         e.preventDefault();
         history.redo();
+        return;
+      }
+
+      if (ctrl && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        setPreviewOpen((v) => !v);
         return;
       }
 
@@ -220,6 +268,13 @@ export function App() {
             >
               ↷ Redo
             </button>
+            <ProjectMenu
+              projectName={project.name}
+              onRename={handleRenameProject}
+              onExport={handleExportProject}
+              onImport={handleImportProject}
+              onNewProject={handleNewProject}
+            />
             <WorkspaceMenu
               presets={workspace.presets}
               hasCustomDefault={workspace.defaultLayout !== null}
@@ -238,6 +293,15 @@ export function App() {
             />
             <button type="button" onClick={() => openNewMapDialog(undefined)}>
               + Nouvelle map
+            </button>
+            <button
+              type="button"
+              className="preview-button"
+              disabled={!activeMap}
+              onClick={() => setPreviewOpen(true)}
+              title="Tester la map active (Ctrl+P)"
+            >
+              ▶ Tester
             </button>
           </div>
         </header>
@@ -266,6 +330,15 @@ export function App() {
           onClose={() => setSettingsMapId(null)}
           onApply={handleApplyMapSettings}
         />
+
+        {previewOpen && activeMap && (
+          <PreviewModal
+            project={project}
+            startMapId={activeMap.id}
+            playerUrl={PLAYER_URL}
+            onClose={() => setPreviewOpen(false)}
+          />
+        )}
       </div>
     </EditorProvider>
   );

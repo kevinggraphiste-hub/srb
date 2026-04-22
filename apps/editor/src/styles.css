@@ -115,6 +115,16 @@ body {
   background: #262626;
 }
 
+.editor-header .header-actions .preview-button {
+  background: #2a1e1e;
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.editor-header .header-actions .preview-button:not(:disabled):hover {
+  background: #3a2222;
+}
+
 .tool-select {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -508,6 +518,65 @@ body {
 
 .modal-actions button:hover {
   filter: brightness(1.15);
+}
+
+/* Preview modal */
+.preview-modal {
+  background: #141414;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.preview-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.preview-modal-header h3 {
+  font-size: 14px;
+  color: #ff6b6b;
+  margin: 0;
+}
+
+.preview-modal-header .preview-status {
+  font-size: 11px;
+  color: #888;
+  flex: 1;
+  font-family: monospace;
+}
+
+.preview-modal-header button {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-family: monospace;
+  cursor: pointer;
+}
+
+.preview-modal-header button:hover {
+  background: #262626;
+}
+
+.preview-iframe {
+  border: 1px solid #333;
+  background: #0a0a0a;
+  display: block;
+}
+
+.preview-modal-footer {
+  font-size: 11px;
+  color: #555;
+  font-family: monospace;
+  text-align: center;
 }
 
 /* Workspace menu */

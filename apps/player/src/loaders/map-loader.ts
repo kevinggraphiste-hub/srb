@@ -1,10 +1,15 @@
 import type { GameMap } from '@srb/types';
+import { getPreviewMap } from '../preview';
 
 /**
- * Fetches a GameMap JSON from the static /maps folder.
- * No runtime validation yet — that arrives with @srb/schemas (Zod) in Phase 2.
+ * Resolves a map by id. If the player is running in preview mode and
+ * the project contains that map, return it directly. Otherwise fall
+ * back to the static /maps/<id>.json endpoint.
  */
 export async function loadMap(mapId: string): Promise<GameMap> {
+  const fromPreview = getPreviewMap(mapId);
+  if (fromPreview) return fromPreview;
+
   const response = await fetch(`/maps/${mapId}.json`);
   if (!response.ok) {
     throw new Error(`Failed to load map "${mapId}": ${response.status} ${response.statusText}`);

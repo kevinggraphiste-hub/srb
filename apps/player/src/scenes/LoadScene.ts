@@ -2,6 +2,7 @@ import * as Phaser from 'phaser';
 import type { CharacterSheet, GameMap } from '@srb/types';
 import { loadMap } from '../loaders/map-loader';
 import { loadCharacterSheet } from '../loaders/character-loader';
+import { getPreviewStartMapId } from '../preview';
 
 const STARTING_MAP_ID = 'village-01';
 const STARTING_PLAYER_SHEET_ID = 'ash';
@@ -25,8 +26,9 @@ export class LoadScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     try {
+      const mapId = getPreviewStartMapId() ?? STARTING_MAP_ID;
       const [map, playerSheet] = await Promise.all([
-        loadMap(STARTING_MAP_ID),
+        loadMap(mapId),
         loadCharacterSheet(STARTING_PLAYER_SHEET_ID),
       ]);
       const npcSheets = await this.loadNpcSheetsForMap(map);
