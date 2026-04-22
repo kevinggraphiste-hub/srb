@@ -43,7 +43,9 @@ export function App() {
   const setProject = history.setProject;
   useAutosave(project);
 
-  const [selectedTileId, setSelectedTileId] = useState<number>(0);
+  // Default to dirt (id 1) so the first stamp/rect/fill is visible on a
+  // freshly-created grass-only map (fill with id 0 on a grass map is a no-op).
+  const [selectedTileId, setSelectedTileId] = useState<number>(1);
   const [activeLayer, setActiveLayer] = useState<EditableLayer>('ground');
   const [activeTool, setActiveTool] = useState<Tool>('stamp');
   const [hiddenLayers, setHiddenLayers] = useState<Set<RenderableLayer>>(() => new Set());

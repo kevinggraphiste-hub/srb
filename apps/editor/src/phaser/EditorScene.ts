@@ -32,7 +32,8 @@ export class EditorScene extends Phaser.Scene {
   private collisionOverlay!: Phaser.GameObjects.Graphics;
   private gridGraphics!: Phaser.GameObjects.Graphics;
   private hoverRect!: Phaser.GameObjects.Rectangle;
-  private previewRect!: Phaser.GameObjects.Rectangle;
+  private previewGraphics!: Phaser.GameObjects.Graphics;
+  private previewColor = 0xff6b6b;
 
   private showCollision = false;
 
@@ -51,7 +52,7 @@ export class EditorScene extends Phaser.Scene {
             ? 0xffd96b
             : 0xff6b6b;
     this.hoverRect.setStrokeStyle(2, color);
-    this.previewRect.setStrokeStyle(2, color);
+    this.previewColor = color;
   }
 
   setHiddenLayers(hidden: Set<RenderableLayerId>): void {
@@ -66,18 +67,21 @@ export class EditorScene extends Phaser.Scene {
 
   /** Show a filled preview rectangle between two tiles (inclusive). Pass null to hide. */
   setPreviewRect(rect: { x0: number; y0: number; x1: number; y1: number } | null): void {
-    if (!this.previewRect) return;
-    if (!rect) {
-      this.previewRect.setVisible(false);
-      return;
-    }
+    if (!this.previewGraphics) return;
+    this.previewGraphics.clear();
+    if (!rect) return;
     const minX = Math.min(rect.x0, rect.x1);
     const maxX = Math.max(rect.x0, rect.x1);
     const minY = Math.min(rect.y0, rect.y1);
     const maxY = Math.max(rect.y0, rect.y1);
-    this.previewRect.setVisible(true);
-    this.previewRect.setPosition(minX * TILE_SIZE, minY * TILE_SIZE);
-    this.previewRect.setSize((maxX - minX + 1) * TILE_SIZE, (maxY - minY + 1) * TILE_SIZE);
+    const w = (maxX - minX + 1) * TILE_SIZE;
+    const h = (maxY - minY + 1) * TILE_SIZE;
+    const px = minX * TILE_SIZE;
+    const py = minY * TILE_SIZE;
+    this.previewGraphics.fillStyle(this.previewColor, 0.25);
+    this.previewGraphics.fillRect(px, py, w, h);
+    this.previewGraphics.lineStyle(2, this.previewColor, 1);
+    this.previewGraphics.strokeRect(px, py, w, h);
   }
 
   create(): void {
@@ -105,11 +109,8 @@ export class EditorScene extends Phaser.Scene {
       .setStrokeStyle(2, 0xff6b6b);
     this.hoverRect.setVisible(false);
 
-    this.previewRect = this.add
-      .rectangle(0, 0, TILE_SIZE, TILE_SIZE, 0xff6b6b, 0.25)
-      .setOrigin(0, 0)
-      .setStrokeStyle(2, 0xff6b6b);
-    this.previewRect.setVisible(false);
+    this.previewGraphics = this.add.graphics();
+    this.previewGraphics.setDepth(500);
 
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       const { tileX, tileY } = this.pointerToTile(pointer);
