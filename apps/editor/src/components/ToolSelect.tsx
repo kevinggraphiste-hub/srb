@@ -1,8 +1,10 @@
-export type Tool = 'stamp' | 'eraser';
+export type Tool = 'stamp' | 'eraser' | 'rect' | 'fill';
 
 const TOOLS: Array<{ id: Tool; label: string; hint: string }> = [
   { id: 'stamp', label: 'Stamp', hint: 'B' },
   { id: 'eraser', label: 'Eraser', hint: 'E' },
+  { id: 'rect', label: 'Rect', hint: 'R' },
+  { id: 'fill', label: 'Fill', hint: 'F' },
 ];
 
 interface ToolSelectProps {

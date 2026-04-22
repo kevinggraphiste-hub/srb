@@ -4,42 +4,54 @@ import { getTileDef } from '@srb/engine';
 
 export const TILE_SIZE = 32;
 
-export type EditorLayer = 'ground' | 'detail' | 'objects';
-
-/**
- * Editor scene: renders the map with a visible grid and emits a 'paint'
- * event when the user clicks a tile. Unlike the player's PlayScene, it
- * does not handle physics, camera follow or character sprites.
- */
-/** Registry key used to pass the initial map + paint callback from React → Scene. */
-export const EDITOR_DATA_REGISTRY_KEY = 'editorData';
-
 export type RenderableLayerId = 'background' | 'ground' | 'detail' | 'objects' | 'overlay';
+
+export type HoverStyle = 'stamp' | 'eraser' | 'rect' | 'fill';
+
+/** Raw pointer events emitted to React, which owns all edit logic. */
+export interface EditorSceneCallbacks {
+  onPointerDown: (tileX: number, tileY: number) => void;
+  onPointerDrag: (tileX: number, tileY: number) => void;
+  onPointerUp: (tileX: number, tileY: number) => void;
+}
+
+export const EDITOR_DATA_REGISTRY_KEY = 'editorData';
 
 export interface EditorSceneData {
   map: GameMap;
   hiddenLayers: Set<RenderableLayerId>;
-  onPaint: (tileX: number, tileY: number) => void;
+  callbacks: EditorSceneCallbacks;
 }
 
 export class EditorScene extends Phaser.Scene {
   private map!: GameMap;
   private hiddenLayers: Set<RenderableLayerId> = new Set();
+  private callbacks!: EditorSceneCallbacks;
+
   private mapGraphics!: Phaser.GameObjects.Graphics;
+  private collisionOverlay!: Phaser.GameObjects.Graphics;
   private gridGraphics!: Phaser.GameObjects.Graphics;
   private hoverRect!: Phaser.GameObjects.Rectangle;
+  private previewRect!: Phaser.GameObjects.Rectangle;
 
-  private onPaint: ((tileX: number, tileY: number) => void) | null = null;
+  private showCollision = false;
 
   constructor() {
     super({ key: 'EditorScene' });
   }
 
-  /** Switch the hover rectangle color between stamp (red) and eraser (gray). */
-  setHoverStyle(tool: 'stamp' | 'eraser'): void {
+  setHoverStyle(tool: HoverStyle): void {
     if (!this.hoverRect) return;
-    const color = tool === 'eraser' ? 0xaaaaaa : 0xff6b6b;
+    const color =
+      tool === 'eraser'
+        ? 0xaaaaaa
+        : tool === 'fill'
+          ? 0x5ed07a
+          : tool === 'rect'
+            ? 0xffd96b
+            : 0xff6b6b;
     this.hoverRect.setStrokeStyle(2, color);
+    this.previewRect.setStrokeStyle(2, color);
   }
 
   setHiddenLayers(hidden: Set<RenderableLayerId>): void {
@@ -47,21 +59,42 @@ export class EditorScene extends Phaser.Scene {
     if (this.mapGraphics) this.renderMap();
   }
 
+  setShowCollision(show: boolean): void {
+    this.showCollision = show;
+    if (this.collisionOverlay) this.renderCollision();
+  }
+
+  /** Show a filled preview rectangle between two tiles (inclusive). Pass null to hide. */
+  setPreviewRect(rect: { x0: number; y0: number; x1: number; y1: number } | null): void {
+    if (!this.previewRect) return;
+    if (!rect) {
+      this.previewRect.setVisible(false);
+      return;
+    }
+    const minX = Math.min(rect.x0, rect.x1);
+    const maxX = Math.max(rect.x0, rect.x1);
+    const minY = Math.min(rect.y0, rect.y1);
+    const maxY = Math.max(rect.y0, rect.y1);
+    this.previewRect.setVisible(true);
+    this.previewRect.setPosition(minX * TILE_SIZE, minY * TILE_SIZE);
+    this.previewRect.setSize((maxX - minX + 1) * TILE_SIZE, (maxY - minY + 1) * TILE_SIZE);
+  }
+
   create(): void {
-    // Pull initial data from the game registry. Phaser 4's scene.add(_, _, true, data)
-    // does not reliably forward `data` to init(), so we keep the contract
-    // simple: React writes to registry before adding the scene, we read here.
     const data = this.game.registry.get(EDITOR_DATA_REGISTRY_KEY) as EditorSceneData | undefined;
     if (!data) {
       throw new Error(`EditorScene: missing registry key "${EDITOR_DATA_REGISTRY_KEY}"`);
     }
     this.map = data.map;
     this.hiddenLayers = data.hiddenLayers;
-    this.onPaint = data.onPaint;
+    this.callbacks = data.callbacks;
 
     this.cameras.main.setBackgroundColor('#1a1a1a');
     this.mapGraphics = this.add.graphics();
     this.renderMap();
+
+    this.collisionOverlay = this.add.graphics();
+    this.renderCollision();
 
     this.gridGraphics = this.add.graphics();
     this.drawGrid();
@@ -72,6 +105,12 @@ export class EditorScene extends Phaser.Scene {
       .setStrokeStyle(2, 0xff6b6b);
     this.hoverRect.setVisible(false);
 
+    this.previewRect = this.add
+      .rectangle(0, 0, TILE_SIZE, TILE_SIZE, 0xff6b6b, 0.25)
+      .setOrigin(0, 0)
+      .setStrokeStyle(2, 0xff6b6b);
+    this.previewRect.setVisible(false);
+
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       const { tileX, tileY } = this.pointerToTile(pointer);
       if (this.isInBounds(tileX, tileY)) {
@@ -80,26 +119,30 @@ export class EditorScene extends Phaser.Scene {
       } else {
         this.hoverRect.setVisible(false);
       }
+      if (pointer.isDown) {
+        const clamped = this.clampTile(tileX, tileY);
+        this.callbacks.onPointerDrag(clamped.tileX, clamped.tileY);
+      }
     });
 
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       const { tileX, tileY } = this.pointerToTile(pointer);
       if (!this.isInBounds(tileX, tileY)) return;
-      this.onPaint?.(tileX, tileY);
+      this.callbacks.onPointerDown(tileX, tileY);
     });
-    // While dragging, paint continuously (stamp-like feel).
-    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (!pointer.isDown) return;
+
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       const { tileX, tileY } = this.pointerToTile(pointer);
-      if (!this.isInBounds(tileX, tileY)) return;
-      this.onPaint?.(tileX, tileY);
+      const clamped = this.clampTile(tileX, tileY);
+      this.callbacks.onPointerUp(clamped.tileX, clamped.tileY);
     });
   }
 
-  /** Re-renders the map from the currently assigned GameMap. Cheap enough for 100×100. */
   refresh(map: GameMap): void {
     this.map = map;
     this.renderMap();
+    this.renderCollision();
+    this.drawGrid();
   }
 
   private renderMap(): void {
@@ -129,6 +172,21 @@ export class EditorScene extends Phaser.Scene {
     }
   }
 
+  private renderCollision(): void {
+    this.collisionOverlay.clear();
+    if (!this.showCollision) return;
+    for (let y = 0; y < this.map.height; y++) {
+      const row = this.map.collision[y];
+      if (!row) continue;
+      for (let x = 0; x < this.map.width; x++) {
+        if (row[x]) {
+          this.collisionOverlay.fillStyle(0xff3333, 0.45);
+          this.collisionOverlay.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        }
+      }
+    }
+  }
+
   private drawGrid(): void {
     this.gridGraphics.clear();
     this.gridGraphics.lineStyle(1, 0xffffff, 0.12);
@@ -147,6 +205,13 @@ export class EditorScene extends Phaser.Scene {
     return {
       tileX: Math.floor(pointer.worldX / TILE_SIZE),
       tileY: Math.floor(pointer.worldY / TILE_SIZE),
+    };
+  }
+
+  private clampTile(tileX: number, tileY: number): { tileX: number; tileY: number } {
+    return {
+      tileX: Math.max(0, Math.min(this.map.width - 1, tileX)),
+      tileY: Math.max(0, Math.min(this.map.height - 1, tileY)),
     };
   }
 

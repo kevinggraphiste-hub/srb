@@ -1,10 +1,11 @@
-export type EditableLayer = 'ground' | 'detail' | 'objects';
+export type EditableLayer = 'ground' | 'detail' | 'objects' | 'collision';
 export type RenderableLayer = 'background' | 'ground' | 'detail' | 'objects' | 'overlay';
 
 const EDITABLE: Array<{ id: EditableLayer; label: string }> = [
   { id: 'ground', label: 'Ground' },
   { id: 'detail', label: 'Detail' },
   { id: 'objects', label: 'Objects' },
+  { id: 'collision', label: 'Collision' },
 ];
 
 const VISIBILITY: Array<{ id: RenderableLayer; label: string }> = [
@@ -20,9 +21,18 @@ interface LayerSelectProps {
   onChange: (layer: EditableLayer) => void;
   hiddenLayers: Set<RenderableLayer>;
   onToggleVisibility: (layer: RenderableLayer) => void;
+  showCollision: boolean;
+  onToggleShowCollision: () => void;
 }
 
-export function LayerSelect({ active, onChange, hiddenLayers, onToggleVisibility }: LayerSelectProps) {
+export function LayerSelect({
+  active,
+  onChange,
+  hiddenLayers,
+  onToggleVisibility,
+  showCollision,
+  onToggleShowCollision,
+}: LayerSelectProps) {
   return (
     <div className="layer-select">
       <h2 style={{ padding: 0, border: 0 }}>Couche active</h2>
@@ -52,6 +62,15 @@ export function LayerSelect({ active, onChange, hiddenLayers, onToggleVisibility
           </button>
         );
       })}
+      <button
+        type="button"
+        className="layer-visibility"
+        onClick={onToggleShowCollision}
+        title="Affiche l'overlay rouge des tiles bloquantes"
+      >
+        <span className="visibility-icon">{showCollision ? '🟥' : '—'}</span>
+        <span className={showCollision ? '' : 'dimmed'}>Overlay collision</span>
+      </button>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { ResizeMapDialog } from './components/ResizeMapDialog';
 import { WorkspaceMenu } from './components/WorkspaceMenu';
 import { EditorProvider, type EditorContextValue } from './context/EditorContext';
 import { useWorkspace } from './hooks/useWorkspace';
+import { useProjectHistory } from './hooks/useProjectHistory';
 import type { EditableLayer, RenderableLayer } from './components/LayerSelect';
 import type { Tool } from './components/ToolSelect';
 import { createBlankMap } from './data/blank-map';
@@ -23,14 +24,18 @@ import {
   setActiveMapId,
 } from './data/project';
 
-const APP_VERSION = '0.2.4';
+const APP_VERSION = '0.3.0';
 
 export function App() {
-  const [project, setProject] = useState<Project>(() => createBlankProject());
+  const history = useProjectHistory(createBlankProject);
+  const project = history.project;
+  const setProject = history.setProject;
+
   const [selectedTileId, setSelectedTileId] = useState<number>(0);
   const [activeLayer, setActiveLayer] = useState<EditableLayer>('ground');
   const [activeTool, setActiveTool] = useState<Tool>('stamp');
   const [hiddenLayers, setHiddenLayers] = useState<Set<RenderableLayer>>(() => new Set());
+  const [showCollision, setShowCollision] = useState<boolean>(false);
 
   const toggleLayerVisibility = useCallback((layer: RenderableLayer) => {
     setHiddenLayers((prev) => {
@@ -41,6 +46,8 @@ export function App() {
     });
   }, []);
 
+  const toggleShowCollision = useCallback(() => setShowCollision((v) => !v), []);
+
   const [newMapParentId, setNewMapParentId] = useState<string | undefined>(undefined);
   const [newMapDialogOpen, setNewMapDialogOpen] = useState(false);
   const [settingsMapId, setSettingsMapId] = useState<string | null>(null);
@@ -50,13 +57,19 @@ export function App() {
 
   const activeMap: GameMap | null = getActiveMap(project);
 
-  const handleMapChange = useCallback((next: GameMap) => {
-    setProject((p) => replaceActiveMap(p, next));
-  }, []);
+  const handleMapChange = useCallback(
+    (next: GameMap) => {
+      setProject((p: Project) => replaceActiveMap(p, next));
+    },
+    [setProject],
+  );
 
-  const handleSelectMap = useCallback((mapId: string) => {
-    setProject((p) => setActiveMapId(p, mapId));
-  }, []);
+  const handleSelectMap = useCallback(
+    (mapId: string) => {
+      setProject((p: Project) => setActiveMapId(p, mapId));
+    },
+    [setProject],
+  );
 
   const openNewMapDialog = useCallback((parentId?: string) => {
     setNewMapParentId(parentId);
@@ -66,28 +79,40 @@ export function App() {
   const handleNewMap = useCallback(
     ({ name, width, height }: { name: string; width: number; height: number }) => {
       const map = createBlankMap(width, height, { name });
-      setProject((p) => addMapToProject(p, map, newMapParentId));
+      setProject((p: Project) => addMapToProject(p, map, newMapParentId));
     },
-    [newMapParentId],
+    [newMapParentId, setProject],
   );
 
-  const handleNewFolder = useCallback((parentId?: string) => {
-    const name = window.prompt('Nom du dossier ?', 'Nouveau dossier');
-    if (!name) return;
-    setProject((p) => addFolderToProject(p, name, parentId));
-  }, []);
+  const handleNewFolder = useCallback(
+    (parentId?: string) => {
+      const name = window.prompt('Nom du dossier ?', 'Nouveau dossier');
+      if (!name) return;
+      setProject((p: Project) => addFolderToProject(p, name, parentId));
+    },
+    [setProject],
+  );
 
-  const handleRename = useCallback((id: string, newName: string) => {
-    setProject((p) => renameItem(p, id, newName));
-  }, []);
+  const handleRename = useCallback(
+    (id: string, newName: string) => {
+      setProject((p: Project) => renameItem(p, id, newName));
+    },
+    [setProject],
+  );
 
-  const handleDelete = useCallback((id: string) => {
-    setProject((p) => deleteItem(p, id));
-  }, []);
+  const handleDelete = useCallback(
+    (id: string) => {
+      setProject((p: Project) => deleteItem(p, id));
+    },
+    [setProject],
+  );
 
-  const handleMove = useCallback((sourceId: string, newParentId?: string) => {
-    setProject((p) => moveItem(p, sourceId, newParentId));
-  }, []);
+  const handleMove = useCallback(
+    (sourceId: string, newParentId?: string) => {
+      setProject((p: Project) => moveItem(p, sourceId, newParentId));
+    },
+    [setProject],
+  );
 
   const settingsMap = settingsMapId
     ? project.items.find((i) => i.type === 'map' && i.map.id === settingsMapId)
@@ -97,12 +122,12 @@ export function App() {
   const handleApplyMapSettings = useCallback(
     ({ name, width, height }: { name: string; width: number; height: number }) => {
       if (!settingsMapId) return;
-      setProject((p) => {
+      setProject((p: Project) => {
         const renamed = renameItem(p, settingsMapId, name);
         return resizeMap(renamed, settingsMapId, width, height);
       });
     },
-    [settingsMapId],
+    [settingsMapId, setProject],
   );
 
   useEffect(() => {
@@ -110,6 +135,19 @@ export function App() {
       const ctrl = e.ctrlKey || e.metaKey;
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+
+      if (ctrl && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) history.redo();
+        else history.undo();
+        return;
+      }
+      if (ctrl && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        history.redo();
+        return;
+      }
+
       if (e.key.toLowerCase() === 'b' && !ctrl) {
         setActiveTool('stamp');
         return;
@@ -118,10 +156,18 @@ export function App() {
         setActiveTool('eraser');
         return;
       }
+      if (e.key.toLowerCase() === 'r' && !ctrl) {
+        setActiveTool('rect');
+        return;
+      }
+      if (e.key.toLowerCase() === 'f' && !ctrl) {
+        setActiveTool('fill');
+        return;
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [history]);
 
   const editorContext: EditorContextValue = {
     project,
@@ -132,6 +178,8 @@ export function App() {
     setActiveLayer,
     hiddenLayers,
     toggleLayerVisibility,
+    showCollision,
+    toggleShowCollision,
     activeTool,
     setActiveTool,
     onMapChange: handleMapChange,
@@ -142,6 +190,8 @@ export function App() {
     onDelete: handleDelete,
     onMove: handleMove,
     onOpenMapSettings: setSettingsMapId,
+    onStrokeBegin: history.beginStroke,
+    onStrokeEnd: history.commitStroke,
   };
 
   return (
@@ -154,6 +204,22 @@ export function App() {
             {activeMap ? ` · ${activeMap.name} (${activeMap.width}×${activeMap.height})` : ''}
           </span>
           <div className="header-actions">
+            <button
+              type="button"
+              onClick={history.undo}
+              disabled={!history.canUndo}
+              title="Annuler (Ctrl+Z)"
+            >
+              ↶ Undo
+            </button>
+            <button
+              type="button"
+              onClick={history.redo}
+              disabled={!history.canRedo}
+              title="Refaire (Ctrl+Shift+Z)"
+            >
+              ↷ Redo
+            </button>
             <WorkspaceMenu
               presets={workspace.presets}
               hasCustomDefault={workspace.defaultLayout !== null}

@@ -38,6 +38,8 @@ export function LayerPanel() {
         onChange={e.setActiveLayer}
         hiddenLayers={e.hiddenLayers}
         onToggleVisibility={e.toggleLayerVisibility}
+        showCollision={e.showCollision}
+        onToggleShowCollision={e.toggleShowCollision}
       />
     </div>
   );
@@ -96,7 +98,10 @@ export function CanvasPanel() {
       hiddenLayers={e.hiddenLayers}
       selectedTileId={e.selectedTileId}
       activeTool={e.activeTool}
+      showCollision={e.showCollision}
       onMapChange={e.onMapChange}
+      onStrokeBegin={e.onStrokeBegin}
+      onStrokeEnd={e.onStrokeEnd}
     />
   );
 }

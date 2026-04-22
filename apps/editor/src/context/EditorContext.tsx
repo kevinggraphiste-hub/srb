@@ -21,8 +21,14 @@ export interface EditorContextValue {
   hiddenLayers: Set<RenderableLayer>;
   toggleLayerVisibility: (layer: RenderableLayer) => void;
 
+  showCollision: boolean;
+  toggleShowCollision: () => void;
+
   activeTool: Tool;
   setActiveTool: (tool: Tool) => void;
+
+  onStrokeBegin: () => void;
+  onStrokeEnd: () => void;
 
   onMapChange: (map: GameMap) => void;
   onSelectMap: (mapId: string) => void;
