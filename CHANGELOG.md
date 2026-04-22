@@ -4,6 +4,40 @@ Toutes les modifications notables de SRB sont listées ici.
 
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et le projet suit [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.3.0] — 2026-04-22 — Phase 2 « Éditeur de maps » complète
+
+Tout ce qui manquait à l'éditeur pour être autonome : nouveaux outils
+de peinture, édition de la collision, undo/redo, persistance du projet
+et aperçu en direct du jeu dans l'éditeur.
+
+### Added
+
+- **Visibilité par couche** : chaque layer (background / ground / detail / objects / overlay) a un toggle œil dans le panneau Couche. Indépendant de la couche active.
+- **Overlay collision** : bouton dédié dans le panneau Visibilité — affiche un voile rouge sur les tiles bloquantes, quelle que soit la couche en cours d'édition.
+- **Outils de peinture étendus** :
+  - **Rect (R)** : glisse pour remplir un rectangle de la tile sélectionnée (preview vivant pendant le drag)
+  - **Fill (F)** : flood-fill 4-connexe de toutes les tiles adjacentes de même ID
+- **Édition collision** : nouvelle couche `Collision` dans le sélecteur — les outils Stamp/Eraser/Rect/Fill basculent alors le grid booléen (stamp = bloquant, eraser = passable).
+- **Undo/Redo** (Ctrl+Z / Ctrl+Shift+Z, Ctrl+Y aussi accepté) :
+  - Un drag de 50 tiles = **un seul** entry d'undo (détection de stroke via pointerdown/up)
+  - Les opérations one-shot (rename, delete, move, new map) s'auto-commit
+  - Historique capé à 100 entrées
+  - Boutons ↶ / ↷ dans le header
+- **Persistance de projet** :
+  - Auto-save dans localStorage 1.5 s après chaque changement, restauré au prochain boot
+  - Menu `Projet ▾` : renommer, exporter en JSON, importer un JSON, nouveau projet (wipe autosave)
+- **Aperçu en direct** :
+  - Bouton `▶ Tester` (Ctrl+P) ouvre le player dans une iframe modale
+  - Le projet entier est transmis via `postMessage` après handshake
+  - Les `transfer` d'events résolvent les maps depuis le projet (plus besoin d'écrire des fichiers JSON pour tester)
+  - URL du player configurable via `VITE_PLAYER_URL`
+
+### Changed
+
+- `EditorScene` émet des events pointer bruts (down/drag/up) ; toute la logique d'outil vit côté React maintenant — plus simple d'ajouter un nouvel outil sans toucher Phaser.
+- `loadMap()` du player est preview-aware : cherche d'abord dans le projet en mémoire, retombe sur `/maps/<id>.json` sinon.
+- Tous les packages bumpés à 0.3.0 pour marquer la fin de la Phase 2.
+
 ## [0.2.4] — 2026-04-22 — Éditeur : vrai docking (dockview) + défaut custom
 
 ### Changed
