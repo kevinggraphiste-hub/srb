@@ -67,7 +67,11 @@ export function HelpPanel() {
   return (
     <div className="panel-body help-panel">
       <p>
-        <strong>B</strong> stamp · <strong>E</strong> eraser
+        <strong>B</strong> stamp · <strong>E</strong> eraser · <strong>R</strong> rect ·{' '}
+        <strong>F</strong> fill · <strong>Ctrl+Z</strong> undo · <strong>Ctrl+P</strong> preview
+      </p>
+      <p>
+        <strong>Shift+drag</strong> avec stamp ou eraser = rect (sans changer d&apos;outil).
       </p>
       <p>
         <strong>Double-clic</strong> sur un item du projet pour le renommer ·{' '}

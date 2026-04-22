@@ -36,9 +36,13 @@ export function createBlankMap(
     height,
     tilesetId: 'placeholder',
     layers: {
+      // All five render layers are initialized so the visibility toggles
+      // actually have something to hide. -1 = empty tile (not drawn).
+      background: grid(width, height, -1),
       ground,
       detail: grid(width, height, -1),
       objects: grid(width, height, -1),
+      overlay: grid(width, height, -1),
     },
     collision,
     events: [],

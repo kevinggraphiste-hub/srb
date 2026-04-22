@@ -1,10 +1,18 @@
-export type EditableLayer = 'ground' | 'detail' | 'objects' | 'collision';
+export type EditableLayer =
+  | 'background'
+  | 'ground'
+  | 'detail'
+  | 'objects'
+  | 'overlay'
+  | 'collision';
 export type RenderableLayer = 'background' | 'ground' | 'detail' | 'objects' | 'overlay';
 
 const EDITABLE: Array<{ id: EditableLayer; label: string }> = [
+  { id: 'background', label: 'Background' },
   { id: 'ground', label: 'Ground' },
   { id: 'detail', label: 'Detail' },
   { id: 'objects', label: 'Objects' },
+  { id: 'overlay', label: 'Overlay' },
   { id: 'collision', label: 'Collision' },
 ];
 

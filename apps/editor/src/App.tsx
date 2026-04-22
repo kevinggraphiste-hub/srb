@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SerializedDockview } from 'dockview-react';
 import type { GameMap, Project } from '@srb/types';
 import { DockLayout } from './components/DockLayout';
@@ -174,6 +174,11 @@ export function App() {
     history.replaceAll(createBlankProject());
   }, [history]);
 
+  // Stable ref to history so the keyboard listener doesn't re-register on
+  // every render (history is a fresh object each render).
+  const historyRef = useRef(history);
+  historyRef.current = history;
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       const ctrl = e.ctrlKey || e.metaKey;
@@ -182,13 +187,15 @@ export function App() {
 
       if (ctrl && e.key.toLowerCase() === 'z') {
         e.preventDefault();
-        if (e.shiftKey) history.redo();
-        else history.undo();
+        e.stopPropagation();
+        if (e.shiftKey) historyRef.current.redo();
+        else historyRef.current.undo();
         return;
       }
       if (ctrl && e.key.toLowerCase() === 'y') {
         e.preventDefault();
-        history.redo();
+        e.stopPropagation();
+        historyRef.current.redo();
         return;
       }
 
@@ -215,9 +222,11 @@ export function App() {
         return;
       }
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [history]);
+    // Capture phase so Ctrl+Z fires before any bubble-phase listener that
+    // might preventDefault or swallow it.
+    window.addEventListener('keydown', onKey, { capture: true });
+    return () => window.removeEventListener('keydown', onKey, { capture: true } as AddEventListenerOptions);
+  }, []);
 
   const editorContext: EditorContextValue = {
     project,

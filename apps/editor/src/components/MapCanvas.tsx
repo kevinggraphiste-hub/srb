@@ -66,7 +66,30 @@ export function MapCanvas({
   };
 
   // State that lives across pointer events within one stroke.
-  const strokeRef = useRef<{ startX: number; startY: number; mapAtStart: GameMap } | null>(null);
+  const strokeRef = useRef<{
+    startX: number;
+    startY: number;
+    mapAtStart: GameMap;
+    mode: 'stamp' | 'eraser' | 'rect' | 'fill';
+  } | null>(null);
+
+  // Tracks whether Shift is held down. Used to promote stamp/eraser drags
+  // into rectangle paints without the user switching tool.
+  const shiftHeldRef = useRef(false);
+  useEffect(() => {
+    const down = (e: KeyboardEvent): void => {
+      if (e.key === 'Shift') shiftHeldRef.current = true;
+    };
+    const up = (e: KeyboardEvent): void => {
+      if (e.key === 'Shift') shiftHeldRef.current = false;
+    };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+    };
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -91,20 +114,34 @@ export function MapCanvas({
           onPointerDown: (tileX: number, tileY: number) => {
             const cur = latestRef.current;
             cur.onStrokeBegin();
-            strokeRef.current = { startX: tileX, startY: tileY, mapAtStart: cur.map };
 
-            if (cur.activeTool === 'rect') {
-              // rect: wait for pointerup. Show a preview marker right away.
+            // Shift + stamp/eraser promotes the drag to rect mode. Eraser stays
+            // eraser semantically (uses -1), which we thread via the stored mode.
+            const promoteToRect =
+              shiftHeldRef.current &&
+              (cur.activeTool === 'stamp' || cur.activeTool === 'eraser');
+            const mode: 'stamp' | 'eraser' | 'rect' | 'fill' = promoteToRect
+              ? 'rect'
+              : cur.activeTool;
+            strokeRef.current = { startX: tileX, startY: tileY, mapAtStart: cur.map, mode };
+
+            if (mode === 'rect') {
               sceneRef.current?.setPreviewRect({ x0: tileX, y0: tileY, x1: tileX, y1: tileY });
               return;
             }
-            if (cur.activeTool === 'fill') {
-              const next = applyFloodFill(cur.map, cur.activeLayer, tileX, tileY, cur.selectedTileId);
+            if (mode === 'fill') {
+              const next = applyFloodFill(
+                cur.map,
+                cur.activeLayer,
+                tileX,
+                tileY,
+                cur.selectedTileId,
+              );
               if (next !== cur.map) cur.onMapChange(next);
               return;
             }
             // stamp/eraser: paint the start tile immediately.
-            const tileIdToPaint = cur.activeTool === 'eraser' ? -1 : cur.selectedTileId;
+            const tileIdToPaint = mode === 'eraser' ? -1 : cur.selectedTileId;
             const painted = applyTile(cur.map, cur.activeLayer, tileIdToPaint, tileX, tileY);
             if (painted !== cur.map) cur.onMapChange(painted);
           },
@@ -113,7 +150,7 @@ export function MapCanvas({
             const stroke = strokeRef.current;
             if (!stroke) return;
 
-            if (cur.activeTool === 'rect') {
+            if (stroke.mode === 'rect') {
               sceneRef.current?.setPreviewRect({
                 x0: stroke.startX,
                 y0: stroke.startY,
@@ -122,8 +159,8 @@ export function MapCanvas({
               });
               return;
             }
-            if (cur.activeTool === 'fill') return;
-            const tileIdToPaint = cur.activeTool === 'eraser' ? -1 : cur.selectedTileId;
+            if (stroke.mode === 'fill') return;
+            const tileIdToPaint = stroke.mode === 'eraser' ? -1 : cur.selectedTileId;
             const painted = applyTile(cur.map, cur.activeLayer, tileIdToPaint, tileX, tileY);
             if (painted !== cur.map) cur.onMapChange(painted);
           },
@@ -134,8 +171,10 @@ export function MapCanvas({
             sceneRef.current?.setPreviewRect(null);
 
             if (!stroke) return;
-            if (cur.activeTool === 'rect') {
-              const tileIdToPaint = cur.selectedTileId;
+            if (stroke.mode === 'rect') {
+              // Eraser-promoted-to-rect uses -1; normal rect uses the selection.
+              const tileIdToPaint =
+                cur.activeTool === 'eraser' ? -1 : cur.selectedTileId;
               const finalMap = applyRect(
                 stroke.mapAtStart,
                 cur.activeLayer,
