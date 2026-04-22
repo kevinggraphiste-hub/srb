@@ -130,8 +130,22 @@ export function EventPanel() {
       </div>
     );
   }
+  // Group edits on a single input into one undo step. React onFocus/onBlur
+  // bubble up; beginStroke on focus opens a batch, commitStroke on blur
+  // closes it. Without this, every keystroke in an event name/textarea
+  // would push its own history entry.
+  const isFormField = (el: EventTarget | null): boolean =>
+    el instanceof HTMLElement && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
   return (
-    <div className="panel-body">
+    <div
+      className="panel-body"
+      onFocus={(ev) => {
+        if (isFormField(ev.target)) e.onStrokeBegin();
+      }}
+      onBlur={(ev) => {
+        if (isFormField(ev.target)) e.onStrokeEnd();
+      }}
+    >
       <EventEditor
         event={selected}
         onChange={e.onEventChange}

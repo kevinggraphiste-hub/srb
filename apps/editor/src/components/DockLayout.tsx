@@ -21,6 +21,8 @@ interface DockLayoutProps {
   layoutToApply: SerializedDockview | null | 'default';
   /** Called after a layoutToApply has been consumed, so the parent can clear it. */
   onLayoutApplied: () => void;
+  /** Exposes the dockview api to the parent for imperative focus / activation. */
+  onApiReady?: (api: DockviewApi) => void;
 }
 
 /**
@@ -37,6 +39,24 @@ function applyDefaultLayout(api: DockviewApi, userDefault: SerializedDockview | 
     }
   }
   buildHardcodedLayout(api);
+}
+
+/**
+ * Ensures panels introduced after a user already saved their layout still show
+ * up. Called after every fromJSON. Without this, a v0.3 workspace would keep
+ * the v0.3 panel set and silently hide v0.4+ panels like "event".
+ */
+function ensureMissingPanels(api: DockviewApi): void {
+  if (!api.getPanel('event')) {
+    api.addPanel({
+      id: 'event',
+      component: 'event',
+      title: PANEL_TITLES.event,
+      position: api.getPanel('project')
+        ? { referencePanel: 'project', direction: 'below' }
+        : { referencePanel: 'canvas', direction: 'right' },
+    });
+  }
 }
 
 function buildHardcodedLayout(api: DockviewApi): void {
@@ -90,6 +110,7 @@ export function DockLayout({
   onLayoutChange,
   layoutToApply,
   onLayoutApplied,
+  onApiReady,
 }: DockLayoutProps) {
   const apiRef = useRef<DockviewApi | null>(null);
   const layoutListenerRef = useRef<Disposable | null>(null);
@@ -97,6 +118,7 @@ export function DockLayout({
   const handleReady = (event: DockviewReadyEvent): void => {
     const api = event.api;
     apiRef.current = api;
+    onApiReady?.(api);
 
     if (initialLayout) {
       try {
@@ -108,6 +130,7 @@ export function DockLayout({
     } else {
       applyDefaultLayout(api, defaultLayout);
     }
+    ensureMissingPanels(api);
 
     // Subscribe to layout changes for persistence. Stored so the effect below can dispose it.
     layoutListenerRef.current = api.onDidLayoutChange(() => {
@@ -136,6 +159,7 @@ export function DockLayout({
         applyDefaultLayout(api, defaultLayout);
       }
     }
+    ensureMissingPanels(api);
     onLayoutApplied();
   }, [layoutToApply, defaultLayout, onLayoutApplied]);
 

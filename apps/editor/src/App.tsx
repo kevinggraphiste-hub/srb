@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { SerializedDockview } from 'dockview-react';
+import type { DockviewApi, SerializedDockview } from 'dockview-react';
 import type { GameMap, MapEvent, Project } from '@srb/types';
 import { DockLayout } from './components/DockLayout';
 import { NewMapDialog } from './components/NewMapDialog';
@@ -40,7 +40,7 @@ import {
   replaceEventInMap,
 } from './data/events';
 
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.4.1';
 const PLAYER_URL =
   (import.meta.env.VITE_PLAYER_URL as string | undefined) ?? 'http://localhost:5173/?preview=1';
 
@@ -77,6 +77,11 @@ export function App() {
 
   const workspace = useWorkspace();
   const [layoutToApply, setLayoutToApply] = useState<SerializedDockview | 'default' | null>(null);
+  const dockApiRef = useRef<DockviewApi | null>(null);
+
+  const focusPanel = useCallback((panelId: string) => {
+    dockApiRef.current?.getPanel(panelId)?.api.setActive();
+  }, []);
 
   const activeMap: GameMap | null = getActiveMap(project);
 
@@ -101,13 +106,16 @@ export function App() {
       const existing = findEventAt(activeMap, tileX, tileY);
       if (existing) {
         setSelectedEventId(existing.id);
-        return;
+      } else {
+        const fresh = createBlankEvent(tileX, tileY);
+        setProject((p: Project) => replaceActiveMap(p, addEventToMap(activeMap, fresh)));
+        setSelectedEventId(fresh.id);
       }
-      const fresh = createBlankEvent(tileX, tileY);
-      setProject((p: Project) => replaceActiveMap(p, addEventToMap(activeMap, fresh)));
-      setSelectedEventId(fresh.id);
+      // Surface the Event panel so the user sees the editor even if its tab
+      // was buried behind another stacked panel (Help, Project, etc.).
+      focusPanel('event');
     },
-    [activeMap, setProject],
+    [activeMap, setProject, focusPanel],
   );
 
   const handleEventChange = useCallback(
@@ -382,6 +390,9 @@ export function App() {
             onLayoutChange={workspace.onLayoutChange}
             layoutToApply={layoutToApply}
             onLayoutApplied={() => setLayoutToApply(null)}
+            onApiReady={(api) => {
+              dockApiRef.current = api;
+            }}
           />
         </main>
 

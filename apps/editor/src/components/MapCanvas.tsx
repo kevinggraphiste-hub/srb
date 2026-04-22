@@ -88,24 +88,6 @@ export function MapCanvas({
   // canvas still closes the rectangle and commits history.
   const finishStrokeRef = useRef<(tileX: number, tileY: number) => void>(() => undefined);
 
-  // Tracks whether Shift is held down. Used to promote stamp/eraser drags
-  // into rectangle paints without the user switching tool.
-  const shiftHeldRef = useRef(false);
-  useEffect(() => {
-    const down = (e: KeyboardEvent): void => {
-      if (e.key === 'Shift') shiftHeldRef.current = true;
-    };
-    const up = (e: KeyboardEvent): void => {
-      if (e.key === 'Shift') shiftHeldRef.current = false;
-    };
-    window.addEventListener('keydown', down);
-    window.addEventListener('keyup', up);
-    return () => {
-      window.removeEventListener('keydown', down);
-      window.removeEventListener('keyup', up);
-    };
-  }, []);
-
   // Build the finisher once and keep it in the ref so both Phaser and the
   // document mouseup fallback call the exact same closure.
   useEffect(() => {
@@ -170,7 +152,7 @@ export function MapCanvas({
         map: latestRef.current.map,
         hiddenLayers: latestRef.current.hiddenLayers,
         callbacks: {
-          onPointerDown: (tileX: number, tileY: number) => {
+          onPointerDown: (tileX: number, tileY: number, modifiers: { shift: boolean }) => {
             const cur = latestRef.current;
 
             // Event tool: no stroke, no paint — just select/create.
@@ -184,7 +166,7 @@ export function MapCanvas({
             // Shift + stamp/eraser promotes the drag to rect mode. Eraser stays
             // eraser semantically (uses -1), which we thread via the stored mode.
             const promoteToRect =
-              shiftHeldRef.current &&
+              modifiers.shift &&
               (cur.activeTool === 'stamp' || cur.activeTool === 'eraser');
             const mode: 'stamp' | 'eraser' | 'rect' | 'fill' = promoteToRect
               ? 'rect'

@@ -4,6 +4,28 @@ Toutes les modifications notables de SRB sont listées ici.
 
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et le projet suit [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.4.1] — 2026-04-22 — Fixes UX panneau Event + raccourcis
+
+### Fixed
+
+- **Panneau Event masqué après création d'un event** : les workspaces
+  sauvegardés en v0.3 n'avaient pas le panel "event", et même dans le
+  layout par défaut il pouvait rester derrière l'onglet Aide. Désormais
+  le panel est injecté à l'ouverture s'il manque, et il est auto-activé
+  dès qu'un event est créé ou sélectionné via l'outil V.
+- **Shift+drag en rect inopérant** : la détection via listener global
+  keydown pouvait rater (focus absorbé par un input / dockview). Lu
+  maintenant directement sur `pointer.event.shiftKey` au moment du
+  pointerdown — fiable quel que soit le focus.
+- **Ctrl+Z qui ne défait pas les dessins après avoir tapé dans un
+  champ event** : cliquer sur le canvas ne relâchait pas le focus de
+  l'input, donc Ctrl+Z faisait l'undo natif du champ au lieu de notre
+  history. Le pointerdown canvas blur maintenant l'élément focusé.
+- **Chaque frappe dans un champ event = un entry d'undo** : les
+  inputs/textareas du panneau Event sont groupés en un seul stroke
+  (beginStroke au focus, commitStroke au blur). Un rename ou une
+  saisie de dialogue = un seul Ctrl+Z pour tout annuler.
+
 ## [0.4.0] — 2026-04-22 — Phase 3 step 1 : placement & édition d'events
 
 Premier palier de la Phase 3 « Événements ». L'éditeur permet maintenant de

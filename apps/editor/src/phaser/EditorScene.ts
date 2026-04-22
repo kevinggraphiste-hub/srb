@@ -10,7 +10,7 @@ export type HoverStyle = 'stamp' | 'eraser' | 'rect' | 'fill' | 'event';
 
 /** Raw pointer events emitted to React, which owns all edit logic. */
 export interface EditorSceneCallbacks {
-  onPointerDown: (tileX: number, tileY: number) => void;
+  onPointerDown: (tileX: number, tileY: number, modifiers: { shift: boolean }) => void;
   onPointerDrag: (tileX: number, tileY: number) => void;
   onPointerUp: (tileX: number, tileY: number) => void;
 }
@@ -156,7 +156,20 @@ export class EditorScene extends Phaser.Scene {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       const { tileX, tileY } = this.pointerToTile(pointer);
       if (!this.isInBounds(tileX, tileY)) return;
-      this.callbacks.onPointerDown(tileX, tileY);
+      // Reading shiftKey from the pointer event is more reliable than a
+      // window keydown ref: it still works if the keydown was swallowed by
+      // a focused input or by dockview.
+      const shift = Boolean(
+        (pointer.event as KeyboardEvent | MouseEvent | undefined)?.shiftKey,
+      );
+      // Clicking the canvas must release focus from any input (event name,
+      // command textarea, ...) so that Ctrl+Z hits our history handler
+      // instead of the input's native undo.
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active !== document.body) {
+        active.blur();
+      }
+      this.callbacks.onPointerDown(tileX, tileY, { shift });
     });
 
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
