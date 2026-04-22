@@ -7,7 +7,7 @@ import { ResizeMapDialog } from './components/ResizeMapDialog';
 import { WorkspaceMenu } from './components/WorkspaceMenu';
 import { EditorProvider, type EditorContextValue } from './context/EditorContext';
 import { useWorkspace } from './hooks/useWorkspace';
-import type { EditableLayer } from './components/LayerSelect';
+import type { EditableLayer, RenderableLayer } from './components/LayerSelect';
 import type { Tool } from './components/ToolSelect';
 import { createBlankMap } from './data/blank-map';
 import {
@@ -30,6 +30,16 @@ export function App() {
   const [selectedTileId, setSelectedTileId] = useState<number>(0);
   const [activeLayer, setActiveLayer] = useState<EditableLayer>('ground');
   const [activeTool, setActiveTool] = useState<Tool>('stamp');
+  const [hiddenLayers, setHiddenLayers] = useState<Set<RenderableLayer>>(() => new Set());
+
+  const toggleLayerVisibility = useCallback((layer: RenderableLayer) => {
+    setHiddenLayers((prev) => {
+      const next = new Set(prev);
+      if (next.has(layer)) next.delete(layer);
+      else next.add(layer);
+      return next;
+    });
+  }, []);
 
   const [newMapParentId, setNewMapParentId] = useState<string | undefined>(undefined);
   const [newMapDialogOpen, setNewMapDialogOpen] = useState(false);
@@ -120,6 +130,8 @@ export function App() {
     setSelectedTileId,
     activeLayer,
     setActiveLayer,
+    hiddenLayers,
+    toggleLayerVisibility,
     activeTool,
     setActiveTool,
     onMapChange: handleMapChange,

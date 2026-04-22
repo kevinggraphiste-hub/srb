@@ -239,6 +239,25 @@ body {
   color: #ff6b6b;
 }
 
+.layer-select button.layer-visibility {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.layer-select .visibility-icon {
+  width: 16px;
+  display: inline-block;
+  text-align: center;
+  color: #888;
+}
+
+.layer-select .dimmed {
+  color: #555;
+  text-decoration: line-through;
+}
+
 .map-canvas-wrapper {
   grid-area: canvas;
   background: #0a0a0a;

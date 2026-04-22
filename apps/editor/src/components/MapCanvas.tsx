@@ -2,12 +2,13 @@ import { useEffect, useRef } from 'react';
 import * as Phaser from 'phaser';
 import type { GameMap } from '@srb/types';
 import { EditorScene, EDITOR_DATA_REGISTRY_KEY, TILE_SIZE } from '../phaser/EditorScene';
-import type { EditableLayer } from './LayerSelect';
+import type { EditableLayer, RenderableLayer } from './LayerSelect';
 import type { Tool } from './ToolSelect';
 
 interface MapCanvasProps {
   map: GameMap;
   activeLayer: EditableLayer;
+  hiddenLayers: Set<RenderableLayer>;
   selectedTileId: number;
   activeTool: Tool;
   onMapChange: (next: GameMap) => void;
@@ -22,6 +23,7 @@ interface MapCanvasProps {
 export function MapCanvas({
   map,
   activeLayer,
+  hiddenLayers,
   selectedTileId,
   activeTool,
   onMapChange,
@@ -31,8 +33,22 @@ export function MapCanvas({
   const gameRef = useRef<Phaser.Game | null>(null);
 
   // Always read the freshest state inside the Phaser callback.
-  const latestRef = useRef({ map, activeLayer, selectedTileId, activeTool, onMapChange });
-  latestRef.current = { map, activeLayer, selectedTileId, activeTool, onMapChange };
+  const latestRef = useRef({
+    map,
+    activeLayer,
+    hiddenLayers,
+    selectedTileId,
+    activeTool,
+    onMapChange,
+  });
+  latestRef.current = {
+    map,
+    activeLayer,
+    hiddenLayers,
+    selectedTileId,
+    activeTool,
+    onMapChange,
+  };
 
   useEffect(() => {
     const container = containerRef.current;
@@ -52,6 +68,7 @@ export function MapCanvas({
     game.events.once(Phaser.Core.Events.READY, () => {
       game.registry.set(EDITOR_DATA_REGISTRY_KEY, {
         map: latestRef.current.map,
+        hiddenLayers: latestRef.current.hiddenLayers,
         onPaint: (tileX: number, tileY: number) => {
           const current = latestRef.current;
           const tileIdToPaint = current.activeTool === 'eraser' ? -1 : current.selectedTileId;
@@ -80,6 +97,10 @@ export function MapCanvas({
   useEffect(() => {
     sceneRef.current?.setHoverStyle(activeTool);
   }, [activeTool]);
+
+  useEffect(() => {
+    sceneRef.current?.setHiddenLayers(hiddenLayers);
+  }, [hiddenLayers]);
 
   return <div id="map-canvas" ref={containerRef} />;
 }

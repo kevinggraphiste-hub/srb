@@ -14,13 +14,17 @@ export type EditorLayer = 'ground' | 'detail' | 'objects';
 /** Registry key used to pass the initial map + paint callback from React → Scene. */
 export const EDITOR_DATA_REGISTRY_KEY = 'editorData';
 
+export type RenderableLayerId = 'background' | 'ground' | 'detail' | 'objects' | 'overlay';
+
 export interface EditorSceneData {
   map: GameMap;
+  hiddenLayers: Set<RenderableLayerId>;
   onPaint: (tileX: number, tileY: number) => void;
 }
 
 export class EditorScene extends Phaser.Scene {
   private map!: GameMap;
+  private hiddenLayers: Set<RenderableLayerId> = new Set();
   private mapGraphics!: Phaser.GameObjects.Graphics;
   private gridGraphics!: Phaser.GameObjects.Graphics;
   private hoverRect!: Phaser.GameObjects.Rectangle;
@@ -38,6 +42,11 @@ export class EditorScene extends Phaser.Scene {
     this.hoverRect.setStrokeStyle(2, color);
   }
 
+  setHiddenLayers(hidden: Set<RenderableLayerId>): void {
+    this.hiddenLayers = hidden;
+    if (this.mapGraphics) this.renderMap();
+  }
+
   create(): void {
     // Pull initial data from the game registry. Phaser 4's scene.add(_, _, true, data)
     // does not reliably forward `data` to init(), so we keep the contract
@@ -47,6 +56,7 @@ export class EditorScene extends Phaser.Scene {
       throw new Error(`EditorScene: missing registry key "${EDITOR_DATA_REGISTRY_KEY}"`);
     }
     this.map = data.map;
+    this.hiddenLayers = data.hiddenLayers;
     this.onPaint = data.onPaint;
 
     this.cameras.main.setBackgroundColor('#1a1a1a');
@@ -94,15 +104,16 @@ export class EditorScene extends Phaser.Scene {
 
   private renderMap(): void {
     this.mapGraphics.clear();
-    const layers = [
-      this.map.layers.background,
-      this.map.layers.ground,
-      this.map.layers.detail,
-      this.map.layers.objects,
-      this.map.layers.overlay,
+    const layers: Array<{ id: RenderableLayerId; grid: number[][] | undefined }> = [
+      { id: 'background', grid: this.map.layers.background },
+      { id: 'ground', grid: this.map.layers.ground },
+      { id: 'detail', grid: this.map.layers.detail },
+      { id: 'objects', grid: this.map.layers.objects },
+      { id: 'overlay', grid: this.map.layers.overlay },
     ];
-    for (const grid of layers) {
+    for (const { id, grid } of layers) {
       if (!grid) continue;
+      if (this.hiddenLayers.has(id)) continue;
       for (let y = 0; y < this.map.height; y++) {
         const row = grid[y];
         if (!row) continue;

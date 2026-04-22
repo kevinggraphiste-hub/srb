@@ -33,7 +33,12 @@ export function LayerPanel() {
   const e = useEditor();
   return (
     <div className="panel-body">
-      <LayerSelect active={e.activeLayer} onChange={e.setActiveLayer} />
+      <LayerSelect
+        active={e.activeLayer}
+        onChange={e.setActiveLayer}
+        hiddenLayers={e.hiddenLayers}
+        onToggleVisibility={e.toggleLayerVisibility}
+      />
     </div>
   );
 }
@@ -88,6 +93,7 @@ export function CanvasPanel() {
       key={e.activeMap.id}
       map={e.activeMap}
       activeLayer={e.activeLayer}
+      hiddenLayers={e.hiddenLayers}
       selectedTileId={e.selectedTileId}
       activeTool={e.activeTool}
       onMapChange={e.onMapChange}

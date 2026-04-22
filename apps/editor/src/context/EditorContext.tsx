@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { GameMap, Project } from '@srb/types';
-import type { EditableLayer } from '../components/LayerSelect';
+import type { EditableLayer, RenderableLayer } from '../components/LayerSelect';
 import type { Tool } from '../components/ToolSelect';
 
 /**
@@ -17,6 +17,9 @@ export interface EditorContextValue {
 
   activeLayer: EditableLayer;
   setActiveLayer: (layer: EditableLayer) => void;
+
+  hiddenLayers: Set<RenderableLayer>;
+  toggleLayerVisibility: (layer: RenderableLayer) => void;
 
   activeTool: Tool;
   setActiveTool: (tool: Tool) => void;
