@@ -4,6 +4,39 @@ Toutes les modifications notables de SRB sont listées ici.
 
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et le projet suit [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.5.1] — 2026-04-23 — Mini-catalogue de sprites placeholder
+
+En attendant le vrai asset manager de la Phase 5, on livre **10 presets
+de PNJ** tous basés sur `ash.png` avec des teintes différentes, pour
+que les events soient enfin visibles en jeu.
+
+### Added
+
+- **10 CharacterSheet** livrés dans `apps/player/public/assets/characters/` :
+  Villageois (ash.png de base en cyan), Villageois bleu/rouge/vert,
+  Marchand, Garde, Mage, Chevalier, Roi, Enfant. Mêmes animations que
+  le joueur, seul le tint change.
+- **Catalogue partagé** `packages/engine/src/sprite-library.ts` : liste
+  `CHARACTER_SPRITES` avec id, label FR, hint, tint. Consommable aussi
+  bien côté runtime que côté éditeur.
+- **Sélecteur de sprite visuel** dans le panneau Event :
+  - Bouton dropdown avec pastille colorée + label FR
+  - Option « (invisible) » en premier pour panneaux / téléporteurs
+  - Grille de 10 presets avec hint descriptif
+  - Champ « Id personnalisé » exposé en mode avancé (pour les users
+    qui ajouteront leurs propres JSON)
+- Template PNJ utilise `villager` (tint par défaut) — change-le via le
+  nouveau sélecteur pour voir les autres variantes.
+
+### Known limits
+
+- Décor (panneaux, coffres, portes) reste invisible au runtime — seul
+  le marker d'éditeur les rend repérables. Vrais sprites d'objets en
+  P5 ou via user-upload (backlog).
+- Toutes les sheets partagent la texture `ash.png` mais Phaser la
+  charge N fois sous N clés différentes (déduplication par
+  `imagePath` = optim à faire, sans impact fonctionnel).
+
 ## [0.5.0] — 2026-04-23 — Phase 3 step 2 : dialogue polish + choix multiples
 
 Second palier de Phase 3. Les dialogues savent maintenant qui parle et

@@ -10,6 +10,7 @@ import type {
 } from '@srb/types';
 import { createBlankEventPage } from '../data/events';
 import { EventCommandList } from './EventCommandList';
+import { SpriteSelector } from './SpriteSelector';
 
 export type EventEditorMode = 'simple' | 'advanced';
 
@@ -235,16 +236,11 @@ export function EventEditor({
           <legend>Apparence</legend>
           <div className="event-field">
             <label>Sprite</label>
-            <input
-              value={page.graphic.spriteId ?? ''}
-              placeholder="(invisible)"
-              onChange={(e) =>
-                updatePage({
-                  graphic: {
-                    ...page.graphic,
-                    spriteId: e.target.value ? e.target.value : null,
-                  },
-                })
+            <SpriteSelector
+              value={page.graphic.spriteId}
+              mode={mode}
+              onChange={(next) =>
+                updatePage({ graphic: { ...page.graphic, spriteId: next } })
               }
             />
           </div>
