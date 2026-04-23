@@ -41,7 +41,7 @@ import {
 import { createEventFromTemplate, type EventTemplateId } from './data/event-templates';
 import { EventTemplatePicker } from './components/EventTemplatePicker';
 
-const APP_VERSION = '0.5.3';
+const APP_VERSION = '0.5.4';
 const PLAYER_URL =
   (import.meta.env.VITE_PLAYER_URL as string | undefined) ?? 'http://localhost:5173/?preview=1';
 

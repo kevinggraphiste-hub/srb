@@ -4,6 +4,22 @@ Toutes les modifications notables de SRB sont listées ici.
 
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et le projet suit [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.5.4] — 2026-04-23 — Retrait markers runtime + logs debug transfer
+
+### Changed
+
+- **Les markers d'events en preview sont retirés** : le jeu doit rester
+  un jeu, pas de pastilles debug superposées même en test. Le rendu
+  runtime ne montre que ce qui a un sprite (les panneaux / téléporteurs
+  restent invisibles comme en prod).
+- Ajout de **logs `[srb]`** dans PlayScene pour tracer le flow de transfer :
+  - chaque changement de tile qui révèle un event (nom + trigger)
+  - l'appel `transfer → mapId="..." tile=(x,y)`
+  - la map effectivement chargée après `loadMap`
+  - les erreurs de transfer avec leur message
+
+Ouvre la console browser (F12) pendant le preview pour diagnostiquer.
+
 ## [0.5.3] — 2026-04-23 — Transfer events : visibilité + erreurs explicites
 
 Le transfer d'event échouait silencieusement quand la map cible
