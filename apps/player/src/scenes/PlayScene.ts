@@ -12,7 +12,16 @@ import { findEventAt, getActivePage } from '../systems/EventRunner';
 import { InputProvider } from '../systems/InputProvider';
 import { Player } from '../entities/Player';
 import { loadMap } from '../loaders/map-loader';
+import { loadCharacterSheet } from '../loaders/character-loader';
 import { DialogBox } from '../ui/DialogBox';
+import { isPreviewMode } from '../preview';
+
+const EVENT_TRIGGER_COLOR: Record<string, number> = {
+  action: 0x4da6ff,
+  contact: 0xff9f43,
+  auto: 0x9b59b6,
+  parallel: 0x2ecc71,
+};
 
 const MOVE_SPEED_PX_PER_SEC = 160;
 
@@ -102,6 +111,8 @@ export class PlayScene extends Phaser.Scene {
 
     this.input2 = new InputProvider(this);
     this.dialogBox = new DialogBox(this);
+
+    if (isPreviewMode()) this.drawEventDebugMarkers();
 
     this.add
       .text(8, 8, `SRB — ${this.map.name}`, {
@@ -321,19 +332,88 @@ export class PlayScene extends Phaser.Scene {
   }
 
   private async transferTo(mapId: string, tileX: number, tileY: number): Promise<void> {
+    if (!mapId) {
+      this.showRuntimeError(
+        'Téléporteur non configuré : aucune map cible choisie. Ouvre le panneau Event pour la définir.',
+      );
+      return;
+    }
     this.transferring = true;
     try {
       const newMap = await loadMap(mapId);
+      const npcSheets = await this.ensureNpcSheetsFor(newMap);
       this.scene.restart({
         map: newMap,
         playerSheet: this.playerSheet,
-        npcSheets: this.npcSheets,
+        npcSheets,
         spawnTileX: tileX,
         spawnTileY: tileY,
       } satisfies PlaySceneData);
     } catch (err) {
       console.error('[transferTo] failed', err);
+      const reason = err instanceof Error ? err.message : 'erreur inconnue';
       this.transferring = false;
+      this.showRuntimeError(`Téléportation vers « ${mapId} » échouée : ${reason}`);
     }
+  }
+
+  /**
+   * Loads any character sheet referenced by the target map that wasn't already
+   * loaded for the current one. Without this, NPCs on the destination map
+   * silently fail to spawn after a transfer.
+   */
+  private async ensureNpcSheetsFor(map: GameMap): Promise<CharacterSheet[]> {
+    const required = new Set<string>();
+    for (const event of map.events) {
+      for (const page of event.pages) {
+        if (page.graphic.spriteId) required.add(page.graphic.spriteId);
+      }
+    }
+    const byId = new Map(this.npcSheets.map((s) => [s.id, s] as const));
+    const missing = [...required].filter((id) => !byId.has(id));
+    if (missing.length === 0) return this.npcSheets;
+    const loaded = await Promise.all(
+      missing.map(async (id) => {
+        try {
+          return await loadCharacterSheet(id);
+        } catch (err) {
+          console.warn(`[transferTo] missing sprite sheet "${id}":`, err);
+          return null;
+        }
+      }),
+    );
+    return [...this.npcSheets, ...loaded.filter((s): s is CharacterSheet => s !== null)];
+  }
+
+  private drawEventDebugMarkers(): void {
+    const markers = this.add.graphics();
+    markers.setDepth(90000);
+    for (const event of this.map.events) {
+      const page = event.pages[0];
+      if (!page) continue;
+      if (page.graphic.spriteId) continue;
+      const cx = event.x * TILE_SIZE + TILE_SIZE / 2;
+      const cy = event.y * TILE_SIZE + TILE_SIZE / 2;
+      const color = EVENT_TRIGGER_COLOR[page.trigger] ?? 0x4da6ff;
+      markers.lineStyle(2, color, 0.9);
+      markers.fillStyle(color, 0.18);
+      markers.fillCircle(cx, cy, TILE_SIZE * 0.35);
+      markers.strokeCircle(cx, cy, TILE_SIZE * 0.35);
+      const letter = (page.trigger[0] ?? 'A').toUpperCase();
+      this.add
+        .text(cx, cy, letter, {
+          color: '#ffffff',
+          fontSize: '12px',
+          fontFamily: 'monospace',
+          stroke: '#000000',
+          strokeThickness: 2,
+        })
+        .setOrigin(0.5, 0.5)
+        .setDepth(90001);
+    }
+  }
+
+  private showRuntimeError(message: string): void {
+    this.dialogBox.openText({ text: `⚠ ${message}`, speaker: 'SRB' });
   }
 }

@@ -4,6 +4,32 @@ Toutes les modifications notables de SRB sont listées ici.
 
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et le projet suit [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.5.3] — 2026-04-23 — Transfer events : visibilité + erreurs explicites
+
+Le transfer d'event échouait silencieusement quand la map cible
+n'était pas configurée, et le téléporteur étant invisible, tu pouvais
+marcher à côté sans savoir pourquoi rien ne se passait. Tout ça est
+rendu visible maintenant.
+
+### Fixed
+
+- **Markers preview sur les events invisibles** : en mode `?preview=1`
+  (c'est-à-dire dans le modal ▶ Tester), chaque event dont
+  `graphic.spriteId` est `null` reçoit un petit cercle coloré par
+  trigger (bleu action, orange contact, violet auto, vert parallel)
+  avec la lettre du déclencheur — tu vois directement où sont tes
+  téléporteurs, panneaux et déclencheurs cachés.
+- **Erreurs de transfer visibles** : au lieu d'un `console.error`
+  muet, un dialogue d'erreur s'affiche dans le jeu (speaker « SRB ») :
+  - Si la commande transfer a un `mapId` vide : « Téléporteur non
+    configuré : aucune map cible choisie. »
+  - Si `loadMap` échoue (map introuvable, fetch 404, ...) : « Télé‐
+    portation vers « `mapId` » échouée : `message` ».
+- **NPCs manquants après transfer** : la destination pouvait référencer
+  des `spriteId` non chargés côté player (seules les sheets de la map
+  de départ sont préchargées par LoadScene). `transferTo` charge
+  désormais à la volée les sheets qui manquent avant le `scene.restart`.
+
 ## [0.5.2] — 2026-04-23 — PreviewModal : détection player offline
 
 ### Changed
