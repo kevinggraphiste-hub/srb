@@ -4,6 +4,26 @@ Toutes les modifications notables de SRB sont listées ici.
 
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et le projet suit [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.5.2] — 2026-04-23 — PreviewModal : détection player offline
+
+### Changed
+
+- **Probe au montage** du modal ▶ Tester : un fetch `no-cors` vers le
+  playerUrl détecte en quelques millisecondes si le dev server est
+  lancé, au lieu d'afficher une iframe cassée et d'attendre 6 s de
+  timeout pour comprendre le problème.
+- Si le player est **hors ligne**, l'iframe est remplacée par un panneau
+  d'aide :
+  - icône 🔌 + titre « Le player dev server n'est pas lancé »
+  - bloc commande `pnpm --filter @srb/player dev` avec bouton
+    **Copier** (presse-papier)
+  - alternative `pnpm dev` à la racine (turbo lance tout)
+  - boutons **Réessayer** (re-probe) et **Ouvrir dans un onglet**
+- Si le player répond mais que le **handshake** traîne >6 s, un bandeau
+  d'avertissement apparaît au lieu du message d'erreur laconique — avec
+  un bouton Réessayer.
+- Le footer du modal mentionne aussi la nav ↑↓ pour les choix.
+
 ## [0.5.1] — 2026-04-23 — Mini-catalogue de sprites placeholder
 
 En attendant le vrai asset manager de la Phase 5, on livre **10 presets
