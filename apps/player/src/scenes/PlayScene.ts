@@ -13,6 +13,13 @@ import { InputProvider } from '../systems/InputProvider';
 import { Player } from '../entities/Player';
 import { loadMap } from '../loaders/map-loader';
 import { loadCharacterSheet } from '../loaders/character-loader';
+import { getPreviewProject } from '../preview';
+import {
+  evaluateCondition,
+  getRuntimeStores,
+  hydrateFromProject,
+  type RuntimeStores,
+} from '../systems/stores';
 import { DialogBox } from '../ui/DialogBox';
 
 const MOVE_SPEED_PX_PER_SEC = 160;
@@ -35,6 +42,9 @@ export class PlayScene extends Phaser.Scene {
   private player!: Player;
   private input2!: InputProvider;
   private dialogBox!: DialogBox;
+  private stores!: RuntimeStores;
+  /** Set when an event's commands are running, so we know whose self_switches to write. */
+  private currentEventId: string | null = null;
 
   /** Static collision from the map + NPC tiles (merged at create time). */
   private effectiveCollision!: CollisionGrid;
@@ -69,14 +79,17 @@ export class PlayScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#0a0a0a');
     this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
 
+    this.stores = getRuntimeStores(this.game);
+    hydrateFromProject(this.stores, getPreviewProject());
+
     renderMapBase(this, this.map);
     this.effectiveCollision = this.map.collision.map((row) => [...row]);
     this.spawnNpcs();
-    // NPC tiles become blocking for the player. Collision on the whole tile
-    // feels right here; the y-sort below keeps visuals natural when the player
-    // passes above an NPC (player is rendered behind the NPC sprite).
+    // NPC tiles become blocking for the player. The active page (and its
+    // sprite) depends on switch/variable state — pages that don't match
+    // collapse to invisible and don't block the player.
     for (const event of this.map.events) {
-      const page = event.pages[0];
+      const page = getActivePage(event, this.stores, this.map.id);
       if (!page || !page.graphic.spriteId) continue;
       const row = this.effectiveCollision[event.y];
       if (row) row[event.x] = true;
@@ -218,7 +231,7 @@ export class PlayScene extends Phaser.Scene {
 
   private spawnNpcs(): void {
     for (const event of this.map.events) {
-      const page = event.pages[0];
+      const page = getActivePage(event, this.stores, this.map.id);
       if (!page || !page.graphic.spriteId) continue;
       const sheet = this.npcSheets.find((s) => s.id === page.graphic.spriteId);
       if (!sheet) continue;
@@ -252,11 +265,11 @@ export class PlayScene extends Phaser.Scene {
 
     const event = findEventAt(this.map, tileX, tileY);
     if (!event) return;
-    const page = getActivePage(event);
+    const page = getActivePage(event, this.stores, this.map.id);
     if (!page) return;
     console.log(`[srb] tile (${tileX},${tileY}) event "${event.name}" trigger=${page.trigger}`);
     if (page.trigger !== 'contact') return;
-    this.beginCommands(page.commands);
+    this.beginCommands(event.id, page.commands);
   }
 
   /** Detects 'action' trigger on the tile directly in front of the player. */
@@ -281,14 +294,15 @@ export class PlayScene extends Phaser.Scene {
     }
     const event = findEventAt(this.map, tx, ty);
     if (!event) return false;
-    const page = getActivePage(event);
+    const page = getActivePage(event, this.stores, this.map.id);
     if (!page || page.trigger !== 'action') return false;
-    this.beginCommands(page.commands);
+    this.beginCommands(event.id, page.commands);
     return true;
   }
 
   /** Queue a list of commands and start running them. */
-  private beginCommands(commands: readonly EventCommand[]): void {
+  private beginCommands(eventId: string, commands: readonly EventCommand[]): void {
+    this.currentEventId = eventId;
     this.pendingCommands = [...commands];
     this.runNextPendingCommand();
   }
@@ -314,6 +328,54 @@ export class PlayScene extends Phaser.Scene {
             cancelIndex: cmd.cancelIndex,
           });
           return;
+        case 'set_switch':
+          this.stores.switches.set(cmd.id, cmd.value);
+          break;
+        case 'toggle_switch':
+          this.stores.switches.toggle(cmd.id);
+          break;
+        case 'set_variable': {
+          const rhs =
+            typeof cmd.value === 'number' ? cmd.value : this.stores.variables.get(cmd.value.ref);
+          const cur = this.stores.variables.get(cmd.id);
+          let next = cur;
+          switch (cmd.op) {
+            case '=':
+              next = rhs;
+              break;
+            case '+=':
+              next = cur + rhs;
+              break;
+            case '-=':
+              next = cur - rhs;
+              break;
+            case '*=':
+              next = cur * rhs;
+              break;
+            case '/=':
+              // Division by zero leaves the variable unchanged rather than producing NaN
+              // (which would silently break later comparisons).
+              next = rhs === 0 ? cur : Math.trunc(cur / rhs);
+              break;
+          }
+          this.stores.variables.set(cmd.id, next);
+          break;
+        }
+        case 'set_self_switch':
+          if (this.currentEventId) {
+            this.stores.selfSwitches.set(this.map.id, this.currentEventId, cmd.id, cmd.value);
+          }
+          break;
+        case 'conditional': {
+          const eventId = this.currentEventId ?? '';
+          const ok = evaluateCondition(cmd.cond, this.stores, {
+            mapId: this.map.id,
+            eventId,
+          });
+          const branch = ok ? cmd.then : (cmd.else ?? []);
+          this.pendingCommands = [...branch, ...this.pendingCommands];
+          break;
+        }
         case 'script':
           console.warn('[event:script] not yet implemented');
           break;

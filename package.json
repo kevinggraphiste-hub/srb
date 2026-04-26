@@ -1,6 +1,6 @@
 {
   "name": "srb",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "private": true,
   "description": "ScarletWolf RPG Builder — monorepo racine",
   "type": "module",

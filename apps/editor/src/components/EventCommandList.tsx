@@ -1,4 +1,12 @@
-import type { EventCommand, GameMap, ShowChoicesChoice } from '@srb/types';
+import type {
+  EventCommand,
+  EventCondition,
+  GameMap,
+  Project,
+  ShowChoicesChoice,
+  VariableOperand,
+} from '@srb/types';
+import { ConditionPicker, SwitchPicker, VariablePicker } from './ConditionPicker';
 import type { EventEditorMode } from './EventEditor';
 
 interface EventCommandListProps {
@@ -6,7 +14,8 @@ interface EventCommandListProps {
   onChange: (next: EventCommand[]) => void;
   mode: EventEditorMode;
   maps: GameMap[];
-  /** Indentation level, for nested branches inside show_choices. */
+  project: Project;
+  /** Indentation level, for nested branches inside show_choices / conditional. */
   depth?: number;
 }
 
@@ -22,6 +31,11 @@ const COMMAND_CHOICES: CommandChoice[] = [
   { type: 'show_text', label: 'Dire un texte' },
   { type: 'show_choices', label: 'Poser une question (choix)' },
   { type: 'transfer', label: 'Téléporter le joueur' },
+  { type: 'set_switch', label: 'Switch — mettre ON/OFF' },
+  { type: 'toggle_switch', label: 'Switch — basculer', advancedOnly: true },
+  { type: 'set_self_switch', label: 'Self-switch (A/B/C/D)', advancedOnly: true },
+  { type: 'set_variable', label: 'Variable — modifier' },
+  { type: 'conditional', label: 'Si … alors …' },
   { type: 'script', label: 'Code (expert)', advancedOnly: true },
   { type: 'placeholder', label: 'Slot vide', advancedOnly: true },
 ];
@@ -30,7 +44,19 @@ function commandLabel(type: CommandType): string {
   return COMMAND_CHOICES.find((c) => c.type === type)?.label ?? type;
 }
 
-function commandPreview(command: EventCommand, maps: GameMap[]): string {
+function switchName(project: Project, id: string): string {
+  const def = project.switches?.[id];
+  if (def?.label) return `${def.label} (${id})`;
+  return id || '(non défini)';
+}
+
+function variableName(project: Project, id: string): string {
+  const def = project.variables?.[id];
+  if (def?.label) return `${def.label} (${id})`;
+  return id || '(non défini)';
+}
+
+function commandPreview(command: EventCommand, maps: GameMap[], project: Project): string {
   switch (command.type) {
     case 'show_text': {
       const text = command.text.trim();
@@ -51,6 +77,32 @@ function commandPreview(command: EventCommand, maps: GameMap[]): string {
       const mapLabel = target ? target.name : command.mapId ? '(map inconnue)' : '(map à choisir)';
       return `→ ${mapLabel} (${command.x}, ${command.y})`;
     }
+    case 'set_switch':
+      return `${switchName(project, command.id)} = ${command.value ? 'ON' : 'OFF'}`;
+    case 'toggle_switch':
+      return `${switchName(project, command.id)} ↔`;
+    case 'set_variable': {
+      const rhs =
+        typeof command.value === 'number'
+          ? String(command.value)
+          : `valeur de ${variableName(project, command.value.ref)}`;
+      return `${variableName(project, command.id)} ${command.op} ${rhs}`;
+    }
+    case 'set_self_switch':
+      return `Self-switch ${command.id} = ${command.value ? 'ON' : 'OFF'}`;
+    case 'conditional': {
+      const c = command.cond;
+      const desc =
+        c.type === 'switch'
+          ? `${switchName(project, c.id)} = ${c.value ? 'ON' : 'OFF'}`
+          : c.type === 'self_switch'
+            ? `self-switch ${c.id} = ${c.value ? 'ON' : 'OFF'}`
+            : c.type === 'variable'
+              ? `${variableName(project, c.id)} ${c.op} ${c.value}`
+              : `item ${c.itemId}`;
+      const elsePart = command.else && command.else.length > 0 ? ' / sinon' : '';
+      return `Si ${desc}${elsePart}`;
+    }
     case 'script':
       return command.code.trim() ? command.code.trim().slice(0, 40) : '(code vide)';
     case 'placeholder':
@@ -63,13 +115,14 @@ export function EventCommandList({
   onChange,
   mode,
   maps,
+  project,
   depth = 0,
 }: EventCommandListProps) {
   const isSimple = mode === 'simple';
   const visibleChoices = COMMAND_CHOICES.filter((c) => !isSimple || !c.advancedOnly);
 
   const add = (type: CommandType): void => {
-    onChange([...commands, blankCommand(type)]);
+    onChange([...commands, blankCommand(type, project)]);
   };
 
   const update = (index: number, next: EventCommand): void => {
@@ -98,6 +151,7 @@ export function EventCommandList({
           key={i}
           command={cmd}
           maps={maps}
+          project={project}
           mode={mode}
           depth={depth}
           onChange={(next) => update(i, next)}
@@ -123,6 +177,7 @@ export function EventCommandList({
 interface CommandRowProps {
   command: EventCommand;
   maps: GameMap[];
+  project: Project;
   mode: EventEditorMode;
   depth: number;
   onChange: (next: EventCommand) => void;
@@ -136,6 +191,7 @@ interface CommandRowProps {
 function CommandRow({
   command,
   maps,
+  project,
   mode,
   depth,
   onChange,
@@ -145,7 +201,7 @@ function CommandRow({
   canMoveUp,
   canMoveDown,
 }: CommandRowProps) {
-  const preview = commandPreview(command, maps);
+  const preview = commandPreview(command, maps, project);
   return (
     <div className="event-command-row">
       <div className="event-command-row-header">
@@ -193,7 +249,14 @@ function CommandRow({
           </div>
         )}
         {command.type === 'show_choices' && (
-          <ShowChoicesEditor command={command} maps={maps} mode={mode} depth={depth} onChange={onChange} />
+          <ShowChoicesEditor
+            command={command}
+            maps={maps}
+            project={project}
+            mode={mode}
+            depth={depth}
+            onChange={onChange}
+          />
         )}
         {command.type === 'transfer' && (
           <div className="event-command-grid">
@@ -229,6 +292,82 @@ function CommandRow({
             </label>
           </div>
         )}
+        {command.type === 'set_switch' && (
+          <div className="event-command-grid">
+            <label className="event-command-span-2">
+              Switch
+              <SwitchPicker
+                project={project}
+                value={command.id}
+                onChange={(id) => onChange({ ...command, id })}
+              />
+            </label>
+            <label>
+              Valeur
+              <select
+                value={String(command.value)}
+                onChange={(e) => onChange({ ...command, value: e.target.value === 'true' })}
+              >
+                <option value="true">ON</option>
+                <option value="false">OFF</option>
+              </select>
+            </label>
+          </div>
+        )}
+        {command.type === 'toggle_switch' && (
+          <div className="event-command-grid">
+            <label className="event-command-span-2">
+              Switch à basculer
+              <SwitchPicker
+                project={project}
+                value={command.id}
+                onChange={(id) => onChange({ ...command, id })}
+              />
+            </label>
+          </div>
+        )}
+        {command.type === 'set_self_switch' && (
+          <div className="event-command-grid">
+            <label>
+              Self-switch
+              <select
+                value={command.id}
+                onChange={(e) =>
+                  onChange({ ...command, id: e.target.value as 'A' | 'B' | 'C' | 'D' })
+                }
+              >
+                {(['A', 'B', 'C', 'D'] as const).map((k) => (
+                  <option key={k} value={k}>
+                    {k}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Valeur
+              <select
+                value={String(command.value)}
+                onChange={(e) => onChange({ ...command, value: e.target.value === 'true' })}
+              >
+                <option value="true">ON</option>
+                <option value="false">OFF</option>
+              </select>
+            </label>
+          </div>
+        )}
+        {command.type === 'set_variable' && (
+          <SetVariableEditor command={command} project={project} onChange={onChange} />
+        )}
+        {command.type === 'conditional' && (
+          <ConditionalEditor
+            command={command}
+            maps={maps}
+            project={project}
+            mode={mode}
+            depth={depth}
+            onChange={onChange}
+          />
+        )}
         {command.type === 'script' && (
           <textarea
             value={command.code}
@@ -243,15 +382,176 @@ function CommandRow({
   );
 }
 
-interface ShowChoicesEditorProps {
-  command: Extract<EventCommand, { type: 'show_choices' }>;
+interface SetVariableEditorProps {
+  command: Extract<EventCommand, { type: 'set_variable' }>;
+  project: Project;
+  onChange: (next: EventCommand) => void;
+}
+
+function SetVariableEditor({ command, project, onChange }: SetVariableEditorProps) {
+  const operandKind = typeof command.value === 'number' ? 'literal' : 'ref';
+  const literal = typeof command.value === 'number' ? command.value : 0;
+  const ref = typeof command.value === 'number' ? '' : command.value.ref;
+
+  const setKind = (kind: 'literal' | 'ref'): void => {
+    const next: VariableOperand = kind === 'literal' ? literal : { ref };
+    onChange({ ...command, value: next });
+  };
+
+  return (
+    <div className="event-command-grid">
+      <label className="event-command-span-2">
+        Variable
+        <VariablePicker
+          project={project}
+          value={command.id}
+          onChange={(id) => onChange({ ...command, id })}
+        />
+      </label>
+      <label>
+        Opération
+        <select
+          value={command.op}
+          onChange={(e) =>
+            onChange({ ...command, op: e.target.value as typeof command.op })
+          }
+        >
+          {(['=', '+=', '-=', '*=', '/='] as const).map((op) => (
+            <option key={op} value={op}>
+              {op}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Valeur de
+        <select value={operandKind} onChange={(e) => setKind(e.target.value as 'literal' | 'ref')}>
+          <option value="literal">Nombre</option>
+          <option value="ref">Autre variable</option>
+        </select>
+      </label>
+      {operandKind === 'literal' ? (
+        <label>
+          Nombre
+          <input
+            type="number"
+            value={literal}
+            onChange={(e) =>
+              onChange({ ...command, value: Number(e.target.value) || 0 })
+            }
+          />
+        </label>
+      ) : (
+        <label className="event-command-span-2">
+          Variable source
+          <VariablePicker
+            project={project}
+            value={ref}
+            onChange={(id) => onChange({ ...command, value: { ref: id } })}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
+
+interface ConditionalEditorProps {
+  command: Extract<EventCommand, { type: 'conditional' }>;
   maps: GameMap[];
+  project: Project;
   mode: EventEditorMode;
   depth: number;
   onChange: (next: EventCommand) => void;
 }
 
-function ShowChoicesEditor({ command, maps, mode, depth, onChange }: ShowChoicesEditorProps) {
+function ConditionalEditor({
+  command,
+  maps,
+  project,
+  mode,
+  depth,
+  onChange,
+}: ConditionalEditorProps) {
+  const hasElse = command.else !== undefined;
+
+  const setCond = (cond: EventCondition): void => {
+    onChange({ ...command, cond });
+  };
+
+  const setThen = (then: EventCommand[]): void => {
+    onChange({ ...command, then });
+  };
+
+  const setElse = (next: EventCommand[]): void => {
+    onChange({ ...command, else: next });
+  };
+
+  const toggleElse = (): void => {
+    if (hasElse) {
+      const { else: _drop, ...rest } = command;
+      void _drop;
+      onChange({ ...rest });
+    } else {
+      onChange({ ...command, else: [] });
+    }
+  };
+
+  return (
+    <div className="event-conditional-editor">
+      <div className="event-conditional-cond">
+        <span className="muted">Si</span>
+        <ConditionPicker condition={command.cond} project={project} onChange={setCond} />
+      </div>
+      <div className="event-conditional-branch">
+        <span className="muted">Alors :</span>
+        <EventCommandList
+          commands={command.then}
+          onChange={setThen}
+          mode={mode}
+          maps={maps}
+          project={project}
+          depth={depth + 1}
+        />
+      </div>
+      <div className="event-conditional-else-toggle">
+        <button type="button" onClick={toggleElse}>
+          {hasElse ? '− Retirer le « Sinon »' : '+ Ajouter un « Sinon »'}
+        </button>
+      </div>
+      {hasElse && (
+        <div className="event-conditional-branch">
+          <span className="muted">Sinon :</span>
+          <EventCommandList
+            commands={command.else ?? []}
+            onChange={setElse}
+            mode={mode}
+            maps={maps}
+            project={project}
+            depth={depth + 1}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ShowChoicesEditorProps {
+  command: Extract<EventCommand, { type: 'show_choices' }>;
+  maps: GameMap[];
+  project: Project;
+  mode: EventEditorMode;
+  depth: number;
+  onChange: (next: EventCommand) => void;
+}
+
+function ShowChoicesEditor({
+  command,
+  maps,
+  project,
+  mode,
+  depth,
+  onChange,
+}: ShowChoicesEditorProps) {
   const updateChoice = (index: number, patch: Partial<ShowChoicesChoice>): void => {
     const next: ShowChoicesChoice[] = command.choices.map((c, i) =>
       i === index ? { ...c, ...patch } : c,
@@ -346,6 +646,7 @@ function ShowChoicesEditor({ command, maps, mode, depth, onChange }: ShowChoices
                 onChange={(next) => updateChoice(i, { branch: next })}
                 mode={mode}
                 maps={maps}
+                project={project}
                 depth={depth + 1}
               />
             </div>
@@ -382,7 +683,9 @@ function ShowChoicesEditor({ command, maps, mode, depth, onChange }: ShowChoices
   );
 }
 
-function blankCommand(type: CommandType): EventCommand {
+function blankCommand(type: CommandType, project: Project): EventCommand {
+  const firstSwitchId = Object.keys(project.switches ?? {})[0] ?? '';
+  const firstVariableId = Object.keys(project.variables ?? {})[0] ?? '';
   switch (type) {
     case 'show_text':
       return { type: 'show_text', text: '' };
@@ -397,6 +700,20 @@ function blankCommand(type: CommandType): EventCommand {
       };
     case 'transfer':
       return { type: 'transfer', mapId: '', x: 0, y: 0 };
+    case 'set_switch':
+      return { type: 'set_switch', id: firstSwitchId, value: true };
+    case 'toggle_switch':
+      return { type: 'toggle_switch', id: firstSwitchId };
+    case 'set_variable':
+      return { type: 'set_variable', id: firstVariableId, op: '=', value: 0 };
+    case 'set_self_switch':
+      return { type: 'set_self_switch', id: 'A', value: true };
+    case 'conditional':
+      return {
+        type: 'conditional',
+        cond: { type: 'switch', id: firstSwitchId, value: true },
+        then: [],
+      };
     case 'script':
       return { type: 'script', code: '' };
     case 'placeholder':

@@ -77,6 +77,11 @@ export interface ShowChoicesChoice {
   branch: EventCommand[];
 }
 
+/** Right-hand side of set_variable. Either a literal or another variable's value. */
+export type VariableOperand = number | { ref: string };
+
+export type SetVariableOp = '=' | '+=' | '-=' | '*=' | '/=';
+
 export type EventCommand =
   | { type: 'show_text'; text: string; speaker?: string }
   | {
@@ -89,6 +94,16 @@ export type EventCommand =
       cancelIndex?: number;
     }
   | { type: 'transfer'; mapId: string; x: number; y: number }
+  | { type: 'set_switch'; id: string; value: boolean }
+  | { type: 'toggle_switch'; id: string }
+  | { type: 'set_variable'; id: string; op: SetVariableOp; value: VariableOperand }
+  | { type: 'set_self_switch'; id: 'A' | 'B' | 'C' | 'D'; value: boolean }
+  | {
+      type: 'conditional';
+      cond: EventCondition;
+      then: EventCommand[];
+      else?: EventCommand[];
+    }
   | { type: 'script'; code: string }
   | { type: 'placeholder' };
 

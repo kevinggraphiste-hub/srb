@@ -6,6 +6,7 @@ interface ProjectMenuProps {
   onExport: () => void;
   onImport: (file: File) => void;
   onNewProject: () => void;
+  onOpenRegistry: () => void;
 }
 
 /** Header dropdown for project-level actions (save/load/new). */
@@ -15,6 +16,7 @@ export function ProjectMenu({
   onExport,
   onImport,
   onNewProject,
+  onOpenRegistry,
 }: ProjectMenuProps) {
   const [open, setOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -64,6 +66,16 @@ export function ProjectMenu({
           <div className="workspace-popup">
             <button type="button" className="workspace-item" onClick={handleRename}>
               Renommer le projet
+            </button>
+            <button
+              type="button"
+              className="workspace-item"
+              onClick={() => {
+                onOpenRegistry();
+                setOpen(false);
+              }}
+            >
+              Switches & variables…
             </button>
             <div className="workspace-divider" />
             <button

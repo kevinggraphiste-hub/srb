@@ -9,6 +9,7 @@ import type {
   Project,
 } from '@srb/types';
 import { createBlankEventPage } from '../data/events';
+import { ConditionPicker } from './ConditionPicker';
 import { EventCommandList } from './EventCommandList';
 import { SpriteSelector } from './SpriteSelector';
 
@@ -303,6 +304,7 @@ export function EventEditor({
         {!isSimple && (
           <ConditionsEditor
             conditions={page.conditions}
+            project={project}
             onChange={(conditions) => updatePage({ conditions })}
           />
         )}
@@ -314,6 +316,7 @@ export function EventEditor({
             onChange={(commands) => updatePage({ commands })}
             mode={mode}
             maps={mapsInProject}
+            project={project}
           />
         </fieldset>
       </section>
@@ -323,20 +326,14 @@ export function EventEditor({
 
 interface ConditionsEditorProps {
   conditions: EventCondition[];
+  project: Project;
   onChange: (next: EventCondition[]) => void;
 }
 
-function ConditionsEditor({ conditions, onChange }: ConditionsEditorProps) {
-  const add = (type: EventCondition['type']): void => {
-    const fresh: EventCondition =
-      type === 'switch'
-        ? { type: 'switch', id: '', value: true }
-        : type === 'variable'
-          ? { type: 'variable', id: '', op: '>=', value: 0 }
-          : type === 'self_switch'
-            ? { type: 'self_switch', id: 'A', value: true }
-            : { type: 'item_owned', itemId: '' };
-    onChange([...conditions, fresh]);
+function ConditionsEditor({ conditions, project, onChange }: ConditionsEditorProps) {
+  const add = (): void => {
+    const firstSwitchId = Object.keys(project.switches ?? {})[0] ?? '';
+    onChange([...conditions, { type: 'switch', id: firstSwitchId, value: true }]);
   };
 
   const update = (index: number, next: EventCondition): void => {
@@ -350,113 +347,26 @@ function ConditionsEditor({ conditions, onChange }: ConditionsEditorProps) {
   return (
     <fieldset className="event-section">
       <legend>Active seulement si…</legend>
-      {conditions.length === 0 && <p className="muted">Aucune condition — variante toujours active.</p>}
+      {conditions.length === 0 && (
+        <p className="muted">Aucune condition — variante toujours active.</p>
+      )}
       {conditions.map((c, i) => (
-        <ConditionRow key={i} condition={c} onChange={(next) => update(i, next)} onRemove={() => remove(i)} />
+        <div key={i} className="event-condition-row">
+          <ConditionPicker
+            condition={c}
+            project={project}
+            onChange={(next) => update(i, next)}
+          />
+          <button type="button" className="danger" onClick={() => remove(i)} title="Retirer">
+            ×
+          </button>
+        </div>
       ))}
       <div className="event-conditions-add">
-        <button type="button" onClick={() => add('switch')}>
-          + switch
-        </button>
-        <button type="button" onClick={() => add('variable')}>
-          + variable
-        </button>
-        <button type="button" onClick={() => add('self_switch')}>
-          + self_switch
-        </button>
-        <button type="button" onClick={() => add('item_owned')}>
-          + item possédé
+        <button type="button" onClick={add}>
+          + Ajouter une condition
         </button>
       </div>
     </fieldset>
-  );
-}
-
-interface ConditionRowProps {
-  condition: EventCondition;
-  onChange: (next: EventCondition) => void;
-  onRemove: () => void;
-}
-
-function ConditionRow({ condition, onChange, onRemove }: ConditionRowProps) {
-  return (
-    <div className="event-condition-row">
-      <span className="event-condition-type">{condition.type}</span>
-      {condition.type === 'switch' && (
-        <>
-          <input
-            placeholder="id"
-            value={condition.id}
-            onChange={(e) => onChange({ ...condition, id: e.target.value })}
-          />
-          <select
-            value={String(condition.value)}
-            onChange={(e) => onChange({ ...condition, value: e.target.value === 'true' })}
-          >
-            <option value="true">ON</option>
-            <option value="false">OFF</option>
-          </select>
-        </>
-      )}
-      {condition.type === 'self_switch' && (
-        <>
-          <select
-            value={condition.id}
-            onChange={(e) =>
-              onChange({ ...condition, id: e.target.value as 'A' | 'B' | 'C' | 'D' })
-            }
-          >
-            {(['A', 'B', 'C', 'D'] as const).map((k) => (
-              <option key={k} value={k}>
-                {k}
-              </option>
-            ))}
-          </select>
-          <select
-            value={String(condition.value)}
-            onChange={(e) => onChange({ ...condition, value: e.target.value === 'true' })}
-          >
-            <option value="true">ON</option>
-            <option value="false">OFF</option>
-          </select>
-        </>
-      )}
-      {condition.type === 'variable' && (
-        <>
-          <input
-            placeholder="id"
-            value={condition.id}
-            onChange={(e) => onChange({ ...condition, id: e.target.value })}
-          />
-          <select
-            value={condition.op}
-            onChange={(e) =>
-              onChange({ ...condition, op: e.target.value as '=' | '>=' | '<=' | '>' | '<' })
-            }
-          >
-            {(['=', '>=', '<=', '>', '<'] as const).map((op) => (
-              <option key={op} value={op}>
-                {op}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            value={condition.value}
-            onChange={(e) => onChange({ ...condition, value: Number(e.target.value) || 0 })}
-          />
-        </>
-      )}
-      {condition.type === 'item_owned' && (
-        <input
-          placeholder="itemId"
-          value={condition.itemId}
-          onChange={(e) => onChange({ ...condition, itemId: e.target.value })}
-        />
-      )}
-      <button type="button" className="danger" onClick={onRemove} title="Retirer">
-        ×
-      </button>
-    </div>
   );
 }

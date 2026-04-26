@@ -16,6 +16,7 @@ import {
   useAutosave,
 } from './hooks/useProjectPersistence';
 import { ProjectMenu } from './components/ProjectMenu';
+import { ProjectRegistryDialog } from './components/ProjectRegistryDialog';
 import { PreviewModal } from './components/PreviewModal';
 import type { EditableLayer, RenderableLayer } from './components/LayerSelect';
 import type { Tool } from './components/ToolSelect';
@@ -41,7 +42,7 @@ import {
 import { createEventFromTemplate, type EventTemplateId } from './data/event-templates';
 import { EventTemplatePicker } from './components/EventTemplatePicker';
 
-const APP_VERSION = '0.5.4';
+const APP_VERSION = '0.6.0';
 const PLAYER_URL =
   (import.meta.env.VITE_PLAYER_URL as string | undefined) ?? 'http://localhost:5173/?preview=1';
 
@@ -74,6 +75,7 @@ export function App() {
   const [newMapDialogOpen, setNewMapDialogOpen] = useState(false);
   const [settingsMapId, setSettingsMapId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [registryOpen, setRegistryOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [templatePickerCoords, setTemplatePickerCoords] = useState<{ x: number; y: number } | null>(
     null,
@@ -367,6 +369,7 @@ export function App() {
               onExport={handleExportProject}
               onImport={handleImportProject}
               onNewProject={handleNewProject}
+              onOpenRegistry={() => setRegistryOpen(true)}
             />
             <WorkspaceMenu
               presets={workspace.presets}
@@ -442,6 +445,15 @@ export function App() {
           tileY={templatePickerCoords?.y ?? 0}
           onClose={() => setTemplatePickerCoords(null)}
           onPick={handlePickTemplate}
+        />
+
+        <ProjectRegistryDialog
+          open={registryOpen}
+          project={project}
+          onClose={() => setRegistryOpen(false)}
+          onApply={({ switches, variables }) => {
+            setProject((p: Project) => ({ ...p, switches, variables }));
+          }}
         />
       </div>
     </EditorProvider>

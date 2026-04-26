@@ -43,10 +43,26 @@ export function getItemOrder(item: ProjectItem): number {
   return item.type === 'folder' ? item.order : item.map.order;
 }
 
+/** A switch is a project-scoped boolean addressable by a stable id. */
+export interface ProjectSwitch {
+  label: string;
+}
+
+/** A variable is a project-scoped integer addressable by a stable id. */
+export interface ProjectVariable {
+  label: string;
+  /** Initial value at the start of a play session. Defaults to 0. */
+  initial?: number;
+}
+
 export interface Project {
   id: string;
   name: string;
   items: ProjectItem[];
   /** The map currently being edited. Null if the project has no maps. */
   activeMapId: string | null;
+  /** Project-wide switches addressable from event conditions and commands. */
+  switches?: Record<string, ProjectSwitch>;
+  /** Project-wide integer variables. */
+  variables?: Record<string, ProjectVariable>;
 }

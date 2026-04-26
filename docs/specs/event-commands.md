@@ -3,7 +3,7 @@
 Format des événements (`MapEvent`) et catalogue des commandes (`EventCommand`)
 exécutées par le runtime quand une page d'event se déclenche.
 
-Version : **1.1.0-draft** (vit pendant toute la Phase 3 ; figée à la fin de P3)
+Version : **1.2.0-draft** (vit pendant toute la Phase 3 ; figée à la fin de P3)
 
 ---
 
@@ -108,13 +108,29 @@ Statuts :
 | ------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------- |
 | show_choices | ✅     | `{ type: 'show_choices'; prompt: string; choices: Array<{ label: string; branch: EventCommand[] }>; defaultIndex?: number; cancelIndex?: number }` |
 
+**Livrées en v0.6.x :**
+
+| Cmd              | Statut | Forme                                                                                  |
+| ---------------- | ------ | -------------------------------------------------------------------------------------- |
+| set_switch       | ✅     | `{ type: 'set_switch'; id: string; value: boolean }`                                   |
+| toggle_switch    | ✅     | `{ type: 'toggle_switch'; id: string }`                                                |
+| set_variable     | ✅     | `{ type: 'set_variable'; id: string; op: '='\|'+='\|'-='\|'*='\|'/='; value: number \| { ref: string } }` |
+| set_self_switch  | ✅     | `{ type: 'set_self_switch'; id: 'A'\|'B'\|'C'\|'D'; value: boolean }`                  |
+| conditional      | ✅     | `{ type: 'conditional'; cond: EventCondition; then: EventCommand[]; else?: EventCommand[] }` |
+
 **Sémantique actuelle :**
 
 - `show_text` : ouvre une DialogBox, bloque l'EventRunner jusqu'à la touche d'action. Si `speaker` est fourni, un bandeau avec le nom est rendu au-dessus de la boîte.
 - `show_choices` : ouvre la DialogBox en mode choix : `prompt` en haut, liste verticale de `choices`. Le joueur navigue avec ↑ ↓, confirme avec Espace, annule avec Échap (fallback sur `cancelIndex` si défini, sinon l'Escape est ignoré). La `branch` du choix retenu est **unshifted** dans la queue — elle s'exécute avant les commandes qui suivent le `show_choices`.
 - `transfer` : restart de PlayScene sur la map cible avec le spawn fourni.
+- `set_switch` / `toggle_switch` : écrit dans le `SwitchStore` partagé (par-user, persisté à travers les transferts via `Phaser.game.registry`).
+- `set_variable` : lit puis écrit dans le `VariableStore`. La RHS est soit un littéral entier, soit `{ ref }` (valeur d'une autre variable). Division par zéro = no-op.
+- `set_self_switch` : écrit dans le `SelfSwitchStore` sous `${mapId}:${eventId}:${slot}`. La commande doit être exécutée dans le contexte d'un event (`currentEventId` non-null).
+- `conditional` : évalue `cond` contre les stores. Si vraie, unshift `then` ; sinon unshift `else` (vide si absent). Pas de boucle, ré-entrée gratuite (then/else sont eux-mêmes des `EventCommand[]`).
 - `script` : `new Function('ctx', code)(ctx)`. Sandbox réelle en Phase 8.
 - `placeholder` : no-op, laissé dans la liste comme emplacement éditeur.
+
+**Évaluation des pages au runtime :** depuis v0.6, `getActivePage(event, stores, mapId)` itère les pages top-down et retourne la première dont **toutes** les conditions matchent (AND logic). Une page sans condition est toujours active (fallback en queue de liste). `item_owned` retourne `true` (no-op) tant que l'inventaire n'est pas livré (P4+).
 
 ### 2.2 Cibles P3 (à livrer dans v0.4 → v0.9)
 
@@ -133,7 +149,7 @@ Regroupées par sous-système. Chaque ligne devient un type à ajouter à l'unio
 
 | Cmd               | Forme                                                                                    |
 | ----------------- | ---------------------------------------------------------------------------------------- |
-| conditional       | `{ type: 'conditional'; cond: EventCondition; then: EventCommand[]; else?: EventCommand[] }` |
+| conditional       | ✅ v0.6 — voir 2.1                                                                       |
 | loop              | `{ type: 'loop'; body: EventCommand[] }`                                                 |
 | break_loop        | `{ type: 'break_loop' }`                                                                 |
 | label             | `{ type: 'label'; name: string }`                                                        |
@@ -143,12 +159,7 @@ Regroupées par sous-système. Chaque ligne devient un type à ajouter à l'unio
 
 #### État projet
 
-| Cmd                    | Forme                                                                  |
-| ---------------------- | ---------------------------------------------------------------------- |
-| set_switch             | `{ type: 'set_switch'; id: string; value: boolean }`                   |
-| toggle_switch          | `{ type: 'toggle_switch'; id: string }`                                |
-| set_variable           | `{ type: 'set_variable'; id: string; op: '='\|'+='\|'-='\|'*='\|'/='; value: number \| { ref: string } }` |
-| set_self_switch        | `{ type: 'set_self_switch'; id: 'A'\|'B'\|'C'\|'D'; value: boolean }` |
+✅ Toutes livrées en v0.6 — voir section 2.1.
 
 #### Mouvement / apparence d'events
 

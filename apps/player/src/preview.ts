@@ -24,6 +24,11 @@ export function getPreviewStartMapId(): string | null {
   return previewStartMapId;
 }
 
+/** Returns the full preview project, or null if not in preview mode. */
+export function getPreviewProject(): Project | null {
+  return previewProject;
+}
+
 /** Returns the map with this id from the preview project, or null if none. */
 export function getPreviewMap(mapId: string): GameMap | null {
   if (!previewProject) return null;

@@ -4,6 +4,43 @@ Toutes les modifications notables de SRB sont listées ici.
 
 Le format s'inspire de [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) et le projet suit [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [0.6.0] — 2026-04-26 — Phase 3 step 3 (switches, variables, conditional)
+
+Première brique d'**état persistant** : les events peuvent désormais lire et
+écrire des switches (booléens) et variables (entiers) déclarés au niveau du
+projet, et des self-switches (A/B/C/D) locaux à chaque event. Les pages d'event
+sont enfin **évaluées** au runtime — la première dont toutes les conditions
+matchent devient active. Permet de coder une vraie quête, un PNJ qui change de
+discours après un événement, ou une porte qui s'ouvre une fois pour toutes.
+
+### Added
+
+- **Registre projet « Switches & variables »** (menu Projet ▾ › Switches &
+  variables…) pour déclarer les ids stables et leurs libellés. Les variables
+  acceptent une valeur initiale, hydratée au lancement de la session.
+- **5 nouvelles commandes** dans l'éditeur :
+  - `set_switch` (mettre ON/OFF), `toggle_switch` (basculer)
+  - `set_variable` avec opérations `=`, `+=`, `-=`, `*=`, `/=` et opérande
+    littérale ou référence à une autre variable
+  - `set_self_switch` (A/B/C/D, local à l'event courant)
+  - `conditional` (« Si … alors … ») avec branche `then`/`else` éditable
+    récursivement, comme `show_choices`
+- **Sélecteurs visuels** dans les conditions de page et la commande
+  `conditional` : dropdown sur le registre projet plutôt que saisie libre
+  d'un id, avec étiquette humaine entre parenthèses.
+- **Évaluation des pages au runtime** : `getActivePage` itère désormais les
+  pages top-down et matche la première dont toutes les conditions sont vraies
+  (AND logic, convention RPG-Maker). Les pages sans condition restent toujours
+  actives — utile en queue de liste comme fallback.
+
+### Internals
+
+- `SwitchStore` / `VariableStore` / `SelfSwitchStore` portés par le registry
+  Phaser (`scene.game.registry`), donc partagés entre toutes les scenes et
+  conservés à travers les `transfer`. Self-switches indexés par
+  `${mapId}:${eventId}:${slot}`.
+- Spec `docs/specs/event-commands.md` → 1.2.0-draft.
+
 ## [0.5.4] — 2026-04-23 — Retrait markers runtime + logs debug transfer
 
 ### Changed
